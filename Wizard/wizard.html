@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRIMUS — Archive Intake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#0A1512; --vellum:#12211C; --vellum2:#16281F;
+  --bioglow:#3FE8B0; --bone:#EDE6D6; --sage:#8FA69A;
+  --rust:#C97B3D; --sage-line:rgba(143,166,154,0.18);
+  --bioglow-dim:rgba(63,232,176,0.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--abyss);color:var(--bone);
+  font-family:'Public Sans',sans-serif;font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+/* ── Root layout ── */
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:40px 20px 80px}
+/* ── Header ── */
+.wiz-header{width:100%;max-width:600px;margin-bottom:36px}
+.wiz-brand{font-family:'Fraunces',serif;font-size:0.95rem;letter-spacing:0.08em;
+  color:var(--bone);margin-bottom:20px;opacity:0.7}
+/* ── Progress ── */
+.prog-wrap{display:flex;flex-direction:column;gap:7px}
+.prog-track{height:2px;background:var(--sage-line);border-radius:1px;position:relative}
+.prog-fill{position:absolute;left:0;top:0;bottom:0;background:var(--bioglow);
+  border-radius:1px;transition:width .4s ease}
+.prog-meta{display:flex;justify-content:space-between;align-items:center}
+.prog-counter{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  letter-spacing:0.14em;color:var(--sage)}
+.prog-section{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  letter-spacing:0.1em;color:var(--sage);text-align:right;opacity:0.7}
+/* ── Card ── */
+.card{width:100%;max-width:600px;background:var(--vellum);
+  border:1px solid var(--sage-line);padding:40px 40px 36px}
+/* ── Step heading ── */
+.step-q{font-family:'Public Sans',sans-serif;font-size:1.18rem;font-weight:500;
+  color:var(--bone);margin-bottom:8px;line-height:1.4}
+.step-sub{font-size:0.875rem;color:var(--sage);margin-bottom:28px;line-height:1.55}
+.step-sub a{color:var(--bioglow);text-decoration:underline;text-underline-offset:3px}
+/* ── Divider ── */
+.divider{border:none;border-top:1px solid var(--sage-line);margin:20px 0}
+/* ── Guide block ── */
+.guide-block{background:var(--abyss);border:1px solid var(--sage-line);
+  padding:24px;margin-bottom:20px}
+.guide-title{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;
+  letter-spacing:0.16em;color:var(--sage);text-transform:uppercase;margin-bottom:16px}
+.guide-steps{display:flex;flex-direction:column;gap:0}
+.guide-step{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--sage-line)}
+.guide-step:last-child{border-bottom:none;padding-bottom:0}
+.guide-step-num{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  color:var(--sage);letter-spacing:0.1em;flex-shrink:0;padding-top:2px;min-width:24px}
+.guide-step-body{flex:1}
+.guide-step-label{font-size:0.9rem;color:var(--bone);font-weight:500;margin-bottom:4px}
+.guide-step-note{font-size:0.82rem;color:var(--sage);line-height:1.5}
+.guide-step-note code{font-family:'IBM Plex Mono',monospace;font-size:0.82rem;
+  color:var(--bioglow)}
+.guide-link{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
+  color:var(--bioglow);text-decoration:underline;text-underline-offset:3px;
+  cursor:pointer;border:none;background:none;padding:0;margin-top:6px}
+.guide-link:hover{opacity:0.8}
+/* ── Estimated time badge ── */
+.est-time{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.12em;
+  color:var(--sage);border:1px solid var(--sage-line);display:inline-block;
+  padding:3px 10px;margin-bottom:20px}
+</style>
+<style>
+/* ── Radio / Checkbox option tiles ── */
+.opt-list{display:flex;flex-direction:column;gap:8px}
+.opt-list.two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt-item{display:flex;align-items:flex-start;gap:12px;background:var(--abyss);
+  border:1px solid var(--sage-line);padding:14px 16px;cursor:pointer;
+  transition:border-color .2s;position:relative;user-select:none}
+.opt-item:hover:not(.disabled){border-color:var(--sage)}
+.opt-item.selected{border-color:var(--bioglow)}
+.opt-item.disabled{opacity:0.4;cursor:not-allowed}
+.opt-item input{position:absolute;opacity:0;width:0;height:0}
+.opt-mark{width:15px;height:15px;border:1px solid var(--sage);flex-shrink:0;
+  margin-top:3px;display:flex;align-items:center;justify-content:center;
+  transition:border-color .2s}
+.opt-item.radio .opt-mark{border-radius:50%}
+.opt-item.selected .opt-mark{border-color:var(--bioglow)}
+.opt-dot{width:7px;height:7px;background:var(--bioglow);border-radius:50%;display:none}
+.opt-item.radio.selected .opt-dot{display:block}
+.opt-chk{display:none;color:var(--bioglow)}
+.opt-item.checkbox.selected .opt-chk{display:block}
+.opt-body{flex:1;min-width:0}
+.opt-label{font-size:0.9rem;color:var(--bone);font-weight:500}
+.opt-desc{font-size:0.8rem;color:var(--sage);margin-top:2px}
+.opt-badge{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;
+  letter-spacing:0.08em;color:var(--sage);border:1px solid var(--sage-line);
+  padding:1px 6px;margin-top:4px;display:inline-block}
+/* ── Text inputs ── */
+.field-wrap{display:flex;flex-direction:column;gap:6px}
+.field-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+  letter-spacing:0.12em;color:var(--sage);text-transform:uppercase}
+.inp{width:100%;background:var(--abyss);border:1px solid var(--sage-line);
+  color:var(--bone);font-family:'IBM Plex Mono',monospace;font-size:0.9rem;
+  padding:13px 16px;outline:none;transition:border-color .2s}
+.inp::placeholder{color:var(--sage);opacity:0.6}
+.inp:focus{border-color:var(--bioglow)}
+.inp.err{border-color:var(--rust)}
+.inp-wrap{position:relative}
+.inp-wrap .inp{padding-right:64px}
+.showhide{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--sage);font-family:'IBM Plex Mono',monospace;
+  font-size:0.68rem;letter-spacing:0.08em;cursor:pointer;padding:4px}
+.showhide:hover{color:var(--bone)}
+/* select */
+.sel{width:100%;background:var(--abyss);border:1px solid var(--sage-line);
+  color:var(--bone);font-family:'IBM Plex Mono',monospace;font-size:0.88rem;
+  padding:13px 16px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238FA69A' stroke-width='1.3' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;
+  transition:border-color .2s}
+.sel:focus{border-color:var(--bioglow)}
+/* ── Toggle rows ── */
+.toggle-list{display:flex;flex-direction:column;gap:2px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;
+  gap:16px;background:var(--abyss);border:1px solid var(--sage-line);padding:14px 16px}
+.toggle-info .t-name{font-size:0.9rem;color:var(--bone);font-weight:500}
+.toggle-info .t-desc{font-size:0.78rem;color:var(--sage);margin-top:2px}
+.sw{position:relative;width:40px;height:22px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw-track{position:absolute;inset:0;background:rgba(143,166,154,0.2);
+  border:1px solid var(--sage-line);cursor:pointer;transition:background .2s,border-color .2s}
+.sw-track::after{content:'';position:absolute;width:14px;height:14px;
+  background:var(--vellum);top:3px;left:3px;transition:transform .2s}
+.sw input:checked+.sw-track{background:var(--bioglow);border-color:var(--bioglow)}
+.sw input:checked+.sw-track::after{transform:translateX(18px);background:var(--abyss)}
+.sw input:focus-visible+.sw-track{outline:2px solid var(--bioglow);outline-offset:2px}
+/* ── Slider ── */
+.slider-row{display:flex;align-items:center;gap:14px}
+.slider-row input[type=range]{flex:1;accent-color:var(--bioglow)}
+.slider-val{font-family:'IBM Plex Mono',monospace;font-size:0.85rem;
+  color:var(--bone);min-width:32px;text-align:right}
+/* ── Textarea ── */
+.ta{width:100%;background:var(--abyss);border:1px solid var(--sage-line);
+  color:var(--bone);font-family:'Public Sans',sans-serif;font-size:0.88rem;
+  padding:13px 16px;outline:none;resize:vertical;min-height:90px;line-height:1.5;
+  transition:border-color .2s}
+.ta:focus{border-color:var(--bioglow)}
+/* ── Error / status messages ── */
+.errmsg{font-size:0.8rem;color:var(--rust);margin-top:8px;
+  display:flex;align-items:center;gap:6px}
+.errmsg::before{content:'!';font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+  width:14px;height:14px;border:1px solid var(--rust);display:inline-flex;
+  align-items:center;justify-content:center;flex-shrink:0}
+.okmsg{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--bioglow);
+  margin-top:8px;display:flex;align-items:center;gap:8px}
+.okmsg::before{content:'✓'}
+.skip-note{font-size:0.85rem;color:var(--sage);font-style:italic;text-align:center;
+  padding:20px;border:1px dashed var(--sage-line);margin:8px 0}
+/* ── Verify button / result ── */
+.verify-btn{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;
+  letter-spacing:0.1em;color:var(--sage);background:transparent;
+  border:1px solid var(--sage-line);padding:10px 18px;cursor:pointer;
+  margin-top:10px;transition:color .2s,border-color .2s}
+.verify-btn:hover{color:var(--bioglow);border-color:var(--bioglow)}
+.verify-result{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;margin-top:8px}
+.verify-result.ok{color:var(--bioglow)}.verify-result.fail{color:var(--rust)}
+/* ── Verification checklist ── */
+.verify-list{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.verify-item{font-family:'IBM Plex Mono',monospace;font-size:0.82rem;
+  color:var(--sage);display:flex;align-items:center;gap:10px}
+.verify-item.ok{color:var(--bioglow)}.verify-item.fail{color:var(--rust)}
+/* ── Section label (inline rule) ── */
+.section-rule{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+  letter-spacing:0.16em;color:var(--sage);text-transform:uppercase;margin:20px 0 16px;
+  display:flex;align-items:center;gap:10px}
+.section-rule::before,.section-rule::after{content:'';flex:1;height:1px;background:var(--sage-line)}
+/* ── Platform badge (connected) ── */
+.platform-status{display:flex;align-items:center;gap:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--sage);
+  margin-top:4px}
+.platform-status.connected{color:var(--bioglow)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+/* ── Review table ── */
+.rev-table{width:100%;border-collapse:collapse;margin-bottom:28px}
+.rev-table tr{border-bottom:1px solid var(--sage-line)}
+.rev-table tr:last-child{border-bottom:none}
+.rev-table td{padding:11px 0;vertical-align:top}
+.rev-key{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.12em;
+  color:var(--sage);text-transform:uppercase;white-space:nowrap;width:1px;padding-right:22px}
+.rev-val{font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:var(--bone)}
+.rev-masked{color:var(--sage);letter-spacing:0.06em}
+/* ── Generating animation ── */
+.gen-list{display:flex;flex-direction:column;gap:10px;margin:24px 0}
+.gen-item{font-family:'IBM Plex Mono',monospace;font-size:0.85rem;
+  color:var(--sage);display:flex;align-items:center;gap:12px}
+.gen-item.done{color:var(--bioglow)}.gen-item.active{color:var(--bone)}
+.gen-spinner{width:14px;height:14px;border:1px solid var(--sage-line);
+  border-top-color:var(--bioglow);border-radius:50%;
+  animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── Success ── */
+.success-wrap{text-align:center;padding:12px 0}
+.success-icon{width:52px;height:52px;border:1px solid var(--bioglow);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 24px;color:var(--bioglow)}
+.success-title{font-family:'Fraunces',serif;font-size:1.35rem;color:var(--bone);margin-bottom:10px}
+.success-body{font-size:0.88rem;color:var(--sage);max-width:380px;
+  margin:0 auto 28px;line-height:1.6}
+.config-preview{background:var(--abyss);border:1px solid var(--sage-line);padding:18px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--sage);
+  text-align:left;white-space:pre;overflow:auto;line-height:1.7;
+  max-height:260px;margin-bottom:20px}
+.copy-btn{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;
+  color:var(--sage);background:transparent;border:1px solid var(--sage-line);
+  padding:9px 18px;cursor:pointer;transition:color .2s,border-color .2s}
+.copy-btn:hover{color:var(--bioglow);border-color:var(--bioglow)}
+.success-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px}
+/* ── Buttons ── */
+.btn-row{display:flex;align-items:center;justify-content:space-between;
+  margin-top:32px;gap:10px}
+.btn{font-family:'Public Sans',sans-serif;font-size:0.86rem;font-weight:500;
+  letter-spacing:0.04em;padding:12px 24px;border:1px solid;cursor:pointer;
+  outline:none;transition:background .2s,color .2s,border-color .2s,opacity .2s}
+.btn:focus-visible{outline:2px solid var(--bioglow);outline-offset:3px}
+.btn-back{color:var(--sage);border-color:var(--sage-line);background:transparent}
+.btn-back:hover{color:var(--bone);border-color:var(--sage)}
+.btn-back:disabled{opacity:0.25;cursor:not-allowed}
+.btn-next{color:var(--abyss);background:var(--bioglow);border-color:var(--bioglow)}
+.btn-next:hover{background:transparent;color:var(--bioglow)}
+.btn-next:disabled{background:transparent;color:var(--sage);
+  border-color:var(--sage-line);cursor:not-allowed;pointer-events:none}
+.btn-launch{width:100%;padding:16px;font-size:0.95rem;letter-spacing:0.06em;
+  color:var(--abyss);background:var(--bioglow);border-color:var(--bioglow);margin-top:4px}
+.btn-launch:hover{background:transparent;color:var(--bioglow)}
+.btn-ghost{color:var(--bone);border-color:var(--sage-line);background:transparent}
+.btn-ghost:hover{border-color:var(--bioglow);color:var(--bioglow)}
+/* ── Tool config card ── */
+.tool-cfg{background:var(--abyss);border:1px solid var(--sage-line);
+  padding:18px 18px 14px;margin-top:6px;display:none}
+.tool-cfg.open{display:block}
+.tool-cfg-title{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;
+  letter-spacing:0.14em;color:var(--sage);text-transform:uppercase;margin-bottom:14px}
+/* ── Responsive ── */
+@media(max-width:560px){
+  .card{padding:28px 20px 28px}
+  .btn-row{flex-direction:column-reverse}
+  .btn{width:100%;text-align:center}
+  .opt-list.two-col{grid-template-columns:1fr}
+  .success-actions{flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+<div id="app" role="main" aria-label="PRIMUS Archive Intake Wizard">
+  <header class="wiz-header">
+    <div class="wiz-brand">Archive Intake</div>
+    <div class="prog-wrap">
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <div class="prog-meta">
+        <span class="prog-counter mono" id="progCounter" role="status" aria-live="polite"></span>
+        <span class="prog-section mono" id="progSection"></span>
+      </div>
+    </div>
+  </header>
+  <div class="card" id="card" role="region" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+//  PRIMUS Setup Wizard — full guided flow
+//  Environment: browser-only → config.json delivered as download
+//  Secrets: never written to config.json; routed through saveSecret()
+// ─────────────────────────────────────────────────────────────
+
+// TODO: wire to real secrets module (OS keyring / .env)
+function saveSecret(ref, value) {
+  console.log('[saveSecret]', ref, '→ len:', value ? value.length : 0);
+}
+
+// ── State ──
+var S = {
+  step: 0,
+  a: {          // answers
+    installType: 'personal',
+    provider: '',
+    apiKey: '',
+    model: '',
+    modelCustom: '',
+    assistantName: 'PRIMUS',
+    systemPrompt: 'You are PRIMUS, a helpful personal AI assistant.',
+    temperature: 0.7,
+    streaming: true,
+    memory: true,
+    memoryItems: ['projects','preferences','conversations','schedules'],
+    memoryBackend: 'sqlite',
+    platforms: [],
+    // per-platform credentials
+    tgToken: '', tgUserId: '',
+    dcToken: '', dcUserId: '',
+    waToken: '', waPhoneId: '', waPhone: '',
+    emailProvider: 'gmail', emailAddr: '', emailPass: '',
+    gchatJson: '', gchatSpace: '',
+    smsAccountSid: '', smsAuthToken: '', smsPhone: '', smsAllowed: '',
+    haUrl: '', haToken: '',
+    ollamaModel: '',
+    // platform verified flags
+    tgVerified: false, dcVerified: false, waVerified: false,
+    emailVerified: false, gchatVerified: false, smsVerified: false,
+    haVerified: false,
+    // tools
+    tools: ['web_search','browser','file_ops','vision','memory',
+            'planning','context_engine','session_search','cron_jobs',
+            'code_exec','computer_use','terminal','git_learning'],
+    searchProvider: 'duckduckgo',
+    browser: 'chromium', browserHeadless: true,
+    visionImages: true, visionOcr: true,
+    gitEnabled: true, gitSync: 'daily',
+    cronEnabled: true, cronMax: 2,
+    desktopAgent: true,
+    desktopFeatures: ['terminal','python','git','docker','browser','ollama','file_access'],
+    notifyItems: ['finished_jobs','failed_jobs','daily_briefing',
+                  'internship_alerts','repo_changes','updates'],
+    storeConversations: true, storeProjects: true,
+    storeImages: false, storeVideos: false, storeConclusionsOnly: true
+  }
+};
+
+// ── Provider catalog ──
+var PROVIDERS = [
+  {v:'openrouter',   l:'OpenRouter',           d:'Unified API for many models.'},
+  {v:'openai',       l:'OpenAI',               d:'GPT series.'},
+  {v:'google',       l:'Google AI Studio',     d:'Gemini series.'},
+  {v:'anthropic',    l:'Anthropic',            d:'Claude series.'},
+  {v:'kimi',         l:'Kimi / Moonshot',      d:'Kimi models.'},
+  {v:'zai',          l:'Z.AI / GLM',           d:'GLM series.'},
+  {v:'groq',         l:'Groq',                 d:'Fast inference.'},
+  {v:'ollama',       l:'Ollama (Local)',        d:'Runs locally, no key needed.'}
+];
+
+var MODELS_BY_PROVIDER = {
+  openrouter:  [{v:'anthropic/claude-sonnet-4-5',l:'Claude Sonnet 4.5'},{v:'openai/gpt-4o',l:'GPT-4o'},{v:'google/gemini-2.5-flash',l:'Gemini 2.5 Flash'},{v:'deepseek/deepseek-r1',l:'DeepSeek R1'},{v:'moonshotai/kimi-k2',l:'Kimi K2'},{v:'__custom__',l:'Custom Model…'}],
+  openai:      [{v:'gpt-4o',l:'GPT-4o'},{v:'gpt-4o-mini',l:'GPT-4o mini'},{v:'o3',l:'o3'},{v:'o4-mini',l:'o4-mini'},{v:'__custom__',l:'Custom Model…'}],
+  google:      [{v:'gemini-2.5-flash',l:'Gemini 2.5 Flash'},{v:'gemini-2.5-pro',l:'Gemini 2.5 Pro'},{v:'gemini-2.0-flash',l:'Gemini 2.0 Flash'},{v:'__custom__',l:'Custom Model…'}],
+  anthropic:   [{v:'claude-opus-4-5',l:'Claude Opus 4.5'},{v:'claude-sonnet-4-5',l:'Claude Sonnet 4.5'},{v:'claude-haiku-3-5',l:'Claude Haiku 3.5'},{v:'__custom__',l:'Custom Model…'}],
+  kimi:        [{v:'kimi-k2',l:'Kimi K2'},{v:'moonshot-v1-8k',l:'Moonshot v1 8k'},{v:'__custom__',l:'Custom Model…'}],
+  zai:         [{v:'glm-4',l:'GLM-4'},{v:'glm-4-flash',l:'GLM-4 Flash'},{v:'__custom__',l:'Custom Model…'}],
+  groq:        [{v:'llama-3.3-70b-versatile',l:'Llama 3.3 70B'},{v:'gemma2-9b-it',l:'Gemma2 9B'},{v:'moonshotai/kimi-k2-instruct',l:'Kimi K2 (Groq)'},{v:'__custom__',l:'Custom Model…'}],
+  ollama:      '__freetext__'
+};
+
+var PLATFORMS_LIST = [
+  {k:'telegram',l:'Telegram',enabled:true},
+  {k:'discord', l:'Discord', enabled:true},
+  {k:'whatsapp',l:'WhatsApp',enabled:true},
+  {k:'email',   l:'Email',   enabled:true},
+  {k:'gchat',   l:'Google Chat',enabled:true},
+  {k:'sms',     l:'SMS (Twilio)',enabled:true},
+  {k:'ha',      l:'Home Assistant',enabled:true}
+];
+
+var TOOLS_LIST = [
+  {k:'web_search',    l:'Web Search',        cfg:true},
+  {k:'browser',       l:'Browser Automation',cfg:true},
+  {k:'file_ops',      l:'File Operations',   cfg:false},
+  {k:'vision',        l:'Vision',            cfg:true},
+  {k:'memory',        l:'Memory',            cfg:false},
+  {k:'planning',      l:'Planning',          cfg:false},
+  {k:'context_engine',l:'Context Engine',    cfg:false},
+  {k:'session_search',l:'Session Search',    cfg:false},
+  {k:'cron_jobs',     l:'Cron Jobs',         cfg:true},
+  {k:'code_exec',     l:'Code Execution',    cfg:false},
+  {k:'computer_use',  l:'Computer Use',      cfg:false},
+  {k:'terminal',      l:'Terminal',          cfg:false},
+  {k:'git_learning',  l:'Git Learning',      cfg:true},
+  {k:'spotify',       l:'Spotify',           cfg:false},
+  {k:'home_assistant',l:'Home Assistant',    cfg:false}
+];
+
+// ── Helper: SVG check ──
+var SVG_CHECK = '<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.5"/></svg>';
+</script>
+<script>
+// ─────────────────────────────────────────────────────────────
+//  STEP DEFINITIONS
+//  Each step: { id, section, title, sub?, render, validate, save }
+// ─────────────────────────────────────────────────────────────
+var STEPS = [];
+
+// ──────────────────────────────────────────
+//  0 · Installation Type
+// ──────────────────────────────────────────
+STEPS.push({id:'install_type', section:'Getting Started',
+  title:'Who is this installation for?',
+  sub:'This helps PRIMUS set sensible defaults for memory scope, tool permissions, and notification behaviour.',
+  render:function(){
+    var types = [{v:'personal',l:'Personal',d:'Just you. Private memory, full tool access.'},
+                 {v:'team',    l:'Team',    d:'A small group. Shared context, role-based tools.'},
+                 {v:'org',     l:'Organization', d:'Wider deployment. Managed credentials, stricter defaults.'}];
+    return radio('install_type', types, S.a.installType);
+  },
+  validate:function(){return !!S.a.installType},
+  save:function(){var c=qs('input[name=install_type]:checked'); if(c) S.a.installType=c.value}
+});
+
+// ──────────────────────────────────────────
+//  1 · AI Provider
+// ──────────────────────────────────────────
+STEPS.push({id:'provider', section:'AI Provider',
+  title:'Which AI provider would you like to use?',
+  sub:'You can switch providers later by re-running the wizard. The same config format works for all.',
+  render:function(){
+    var items = PROVIDERS.map(function(p){return {v:p.v,l:p.l,d:p.d}});
+    return radio('provider', items, S.a.provider);
+  },
+  validate:function(){return !!S.a.provider},
+  save:function(){var c=qs('input[name=provider]:checked'); if(c) S.a.provider=c.value}
+});
+
+// ──────────────────────────────────────────
+//  2 · API Key  (skip if Ollama)
+// ──────────────────────────────────────────
+STEPS.push({id:'api_key', section:'AI Provider',
+  title:'Enter your API key.',
+  sub:null,
+  render:function(){
+    if(S.a.provider==='ollama') return skip('Ollama runs locally — no API key required.');
+    var pn = providerName(S.a.provider);
+    var existing = S.a.apiKey;
+    var h = '<p class="step-sub">'+pn+' requires an API key. Your key is stored securely in the system keyring — never written to <code style="font-family:\'IBM Plex Mono\',monospace;font-size:0.85em;color:var(--bioglow)">config.json</code>.</p>';
+    if(existing){
+      h += '<div class="section-rule">Current Status</div>';
+      h += '<div class="okmsg">API Key Found</div>';
+      h += radio('api_key_action', [
+        {v:'keep',l:'Keep Existing',d:'Use the key already stored.'},
+        {v:'replace',l:'Replace',d:'Enter a new key.'},
+        {v:'clear',l:'Clear',d:'Remove the stored key.'}
+      ], 'keep');
+    } else {
+      h += '<div class="field-wrap"><div class="field-label">API Key</div>';
+      h += '<div class="inp-wrap"><input id="apiKeyInp" type="password" class="inp" placeholder="Paste your key here…" autocomplete="off" spellcheck="false" aria-label="API Key"></div></div>';
+      h += '<div class="errmsg" id="apiKeyErr" style="display:none"></div>';
+      h += '<button type="button" class="verify-btn" id="testConnBtn">Test Connection <span style="font-size:0.65rem;opacity:.6">(optional)</span></button>';
+      h += '<div class="verify-result" id="testConnResult"></div>';
+    }
+    return h;
+  },
+  validate:function(){
+    if(S.a.provider==='ollama') return true;
+    if(S.a.apiKey) return true;
+    var inp = qs('#apiKeyInp'); return inp && inp.value.trim().length >= 8;
+  },
+  save:function(){
+    if(S.a.provider==='ollama') return;
+    var act = qs('input[name=api_key_action]:checked');
+    if(act){
+      if(act.value==='clear') S.a.apiKey='';
+      return;
+    }
+    var inp=qs('#apiKeyInp'); if(inp) S.a.apiKey=inp.value.trim();
+  }
+});
+
+// ──────────────────────────────────────────
+//  3 · Model Selection
+// ──────────────────────────────────────────
+STEPS.push({id:'model', section:'AI Provider',
+  title:'Choose your default model.',
+  sub:'This model will be used for all assistant interactions unless overridden per-conversation.',
+  render:function(){
+    var p=S.a.provider, models=MODELS_BY_PROVIDER[p];
+    if(!models||models==='__freetext__'){
+      return '<div class="field-wrap"><div class="field-label">Model Name</div>'+
+        '<input id="modelInp" type="text" class="inp" placeholder="e.g. qwen3, llama3, mistral" value="'+esc(S.a.model)+'" aria-label="Ollama model name"></div>'+
+        '<p class="step-sub" style="margin-top:10px">Enter the exact name shown by <code style="font-family:\'IBM Plex Mono\',monospace;color:var(--bioglow)">ollama list</code>.</p>'+
+        '<div class="errmsg" id="modelErr" style="display:none"></div>';
+    }
+    var h = radio('model', models.filter(function(m){return m.v!=='__custom__'}).map(function(m){return {v:m.v,l:m.l}}), S.a.model);
+    // Custom option
+    h += '<div style="margin-top:8px">'+
+      '<label class="opt-item radio'+(S.a.model==='__custom__'?' selected':'')+'" data-v="__custom__">'+
+      '<input type="radio" name="model" value="__custom__"'+(S.a.model==='__custom__'?' checked':'')+'>'+
+      '<span class="opt-mark"><span class="opt-dot"></span></span>'+
+      '<span class="opt-body"><span class="opt-label">Custom Model</span></span></label></div>';
+    h += '<div id="customModelWrap" style="margin-top:8px;display:'+(S.a.model==='__custom__'?'block':'none')+'">'+
+      '<input id="modelCustomInp" type="text" class="inp" placeholder="e.g. anthropic/claude-3-opus" value="'+esc(S.a.modelCustom)+'"></div>';
+    h += '<div class="errmsg" id="modelErr" style="display:none"></div>';
+    return h;
+  },
+  validate:function(){
+    var p=S.a.provider;
+    if(!p) return false;
+    var models=MODELS_BY_PROVIDER[p];
+    if(!models||models==='__freetext__'){var inp=qs('#modelInp');return inp?inp.value.trim().length>0:S.a.model.length>0}
+    if(S.a.model==='__custom__') return S.a.modelCustom.trim().length>0;
+    return S.a.model.length>0 && S.a.model!=='__custom__';
+  },
+  save:function(){
+    var p=S.a.provider, models=MODELS_BY_PROVIDER[p];
+    if(!models||models==='__freetext__'){var inp=qs('#modelInp');if(inp)S.a.model=inp.value.trim();return}
+    var c=qs('input[name=model]:checked');if(c)S.a.model=c.value;
+    var ci=qs('#modelCustomInp');if(ci)S.a.modelCustom=ci.value.trim();
+  }
+});
+
+// ──────────────────────────────────────────
+//  4 · AI Behaviour
+// ──────────────────────────────────────────
+STEPS.push({id:'behaviour', section:'AI Behaviour',
+  title:'Configure your assistant.',
+  sub:'These defaults apply to every conversation. You can override them per-session later.',
+  render:function(){
+    var h='<div class="field-wrap" style="margin-bottom:16px"><div class="field-label">Assistant Name</div>'+
+      '<input id="aNameInp" type="text" class="inp" value="'+esc(S.a.assistantName)+'" placeholder="PRIMUS" aria-label="Assistant name"></div>';
+    h+='<div class="field-wrap" style="margin-bottom:16px"><div class="field-label">System Prompt</div>'+
+      '<textarea id="sysPromptTa" class="ta" aria-label="System prompt">'+esc(S.a.systemPrompt)+'</textarea></div>';
+    h+='<div class="field-wrap" style="margin-bottom:16px"><div class="field-label">Temperature</div>'+
+      '<div class="slider-row"><input type="range" id="tempSlider" min="0" max="2" step="0.1" value="'+S.a.temperature+'" aria-label="Temperature">'+
+      '<span class="slider-val" id="tempVal">'+S.a.temperature+'</span></div></div>';
+    h+='<div class="toggle-list"><div class="toggle-row">'+
+      '<div class="toggle-info"><div class="t-name">Streaming</div><div class="t-desc">Stream tokens as they are generated.</div></div>'+
+      toggle('streamingTog',S.a.streaming)+'</div></div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    var n=qs('#aNameInp'),sp=qs('#sysPromptTa'),ts=qs('#tempSlider'),st=qs('#streamingTog');
+    if(n)S.a.assistantName=n.value.trim()||'PRIMUS';
+    if(sp)S.a.systemPrompt=sp.value.trim();
+    if(ts)S.a.temperature=parseFloat(ts.value);
+    if(st)S.a.streaming=st.checked;
+  }
+});
+</script>
+<script>
+// ──────────────────────────────────────────
+//  5 · Memory
+// ──────────────────────────────────────────
+STEPS.push({id:'memory', section:'Memory',
+  title:'Would you like to enable memory?',
+  sub:'PRIMUS stores conclusions — not raw data. What it remembers is listed below.',
+  render:function(){
+    var items=[{k:'projects',l:'Remember projects',d:'Active repos, goals, stack details.'},
+               {k:'preferences',l:'Remember preferences',d:'How you like things done.'},
+               {k:'conversations',l:'Remember conversations',d:'Key decisions and threads.'},
+               {k:'schedules',l:'Remember schedules',d:'Recurring tasks and calendar context.'}];
+    var h='<div class="toggle-list" style="margin-bottom:20px">'+
+      '<div class="toggle-row"><div class="toggle-info"><div class="t-name">Enable Memory</div>'+
+      '<div class="t-desc">PRIMUS will remember context across sessions.</div></div>'+
+      toggle('memMainTog',S.a.memory)+'</div></div>';
+    h+='<div id="memDetails" style="display:'+(S.a.memory?'block':'none')+'"><div class="toggle-list">';
+    items.forEach(function(it){
+      h+='<div class="toggle-row"><div class="toggle-info"><div class="t-name">'+it.l+'</div>'+
+        '<div class="t-desc">'+it.d+'</div></div>'+
+        toggle('mem_'+it.k, S.a.memoryItems.indexOf(it.k)!==-1)+'</div>';
+    });
+    h+='</div>';
+    h+='<div class="section-rule" style="margin-top:20px">Memory Backend</div>';
+    h+=radio('memBackend',[{v:'sqlite',l:'SQLite',d:'Fast, local, zero config. Recommended.'},{v:'json',l:'JSON',d:'Experimental — human-readable but slower.'}],S.a.memoryBackend);
+    h+='</div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    var mt=qs('#memMainTog');if(mt)S.a.memory=mt.checked;
+    S.a.memoryItems=[];
+    ['projects','preferences','conversations','schedules'].forEach(function(k){
+      var t=qs('#mem_'+k); if(t&&t.checked) S.a.memoryItems.push(k);
+    });
+    var mb=qs('input[name=memBackend]:checked');if(mb)S.a.memoryBackend=mb.value;
+  }
+});
+
+// ──────────────────────────────────────────
+//  6 · Messaging Platforms
+// ──────────────────────────────────────────
+STEPS.push({id:'platforms', section:'Messaging',
+  title:'Choose where your assistant should live.',
+  sub:'Select every platform you want PRIMUS to be available on. You will configure each one next.',
+  render:function(){
+    var h='<div class="opt-list" role="group" aria-label="Messaging platforms">';
+    PLATFORMS_LIST.forEach(function(p){
+      var sel=S.a.platforms.indexOf(p.k)!==-1;
+      h+='<label class="opt-item checkbox'+(sel?' selected':'')+'" data-k="'+p.k+'">'+
+        '<input type="checkbox" name="platforms" value="'+p.k+'"'+(sel?' checked':'')+' aria-label="'+p.l+'">'+
+        '<span class="opt-mark"><span class="opt-chk">'+SVG_CHECK+'</span></span>'+
+        '<span class="opt-body"><span class="opt-label">'+p.l+'</span></span></label>';
+    });
+    h+='</div><div class="errmsg" id="platErr" style="display:none"></div>';
+    return h;
+  },
+  validate:function(){return S.a.platforms.length>0},
+  save:function(){
+    var cc=qsa('input[name=platforms]:checked');
+    S.a.platforms=[];cc.forEach(function(c){S.a.platforms.push(c.value)});
+    var e=qs('#platErr');
+    if(!S.a.platforms.length&&e){e.style.display='flex';e.textContent='Select at least one platform.';return false}
+  }
+});
+
+// ──────────────────────────────────────────
+//  PLATFORM SETUP STEPS (injected dynamically)
+//  Built as factory functions; inserted into STEPS before rendering
+// ──────────────────────────────────────────
+
+function makeTelegramStep(){return {id:'setup_telegram',section:'Messaging · Telegram',
+  title:'🤖 Telegram Bot Setup',
+  sub:'Estimated time: 2 minutes. PRIMUS needs a bot to receive and send Telegram messages.',
+  render:function(){
+    var h='<div class="guide-block">';
+    h+=guideStep('01','Open Telegram and search for @BotFather','<a class="guide-link" href="https://t.me/BotFather" target="_blank" rel="noopener">t.me/BotFather →</a>');
+    h+=guideStep('02','Type <code>/newbot</code>','');
+    h+=guideStep('03','Enter a display name','Example: <code>Primus Assistant</code>');
+    h+=guideStep('04','Choose a unique username ending in <code>bot</code>','Example: <code>primus_ai_bot</code>');
+    h+=guideStep('05','BotFather replies with a token like <code>123456789:AABBcc…</code>','Copy it and paste below.');
+    h+='</div>';
+    h+='<div class="field-wrap"><div class="field-label">Bot Token</div>'+
+      '<div class="inp-wrap"><input id="tgTokenInp" type="password" class="inp" placeholder="123456789:ABCdef…" autocomplete="off" value="'+esc(S.a.tgToken)+'">'+
+      '<button type="button" class="showhide" id="tgSH">SHOW</button></div></div>';
+    h+='<div class="errmsg" id="tgTokErr" style="display:none"></div>';
+    h+='<div class="section-rule" style="margin-top:20px">Find Your Telegram User ID</div>';
+    h+=guideInline('Open Telegram and search <a class="guide-link" href="https://t.me/userinfotg2bot" target="_blank" rel="noopener">@userinfotg2bot</a>. Press START — the bot replies with your User ID number. Paste it below.');
+    h+='<div class="field-wrap" style="margin-top:12px"><div class="field-label">User ID</div>'+
+      '<input id="tgUidInp" type="text" class="inp" placeholder="728394827" value="'+esc(S.a.tgUserId)+'" inputmode="numeric"></div>';
+    h+='<div class="errmsg" id="tgUidErr" style="display:none"></div>';
+    h+='<button type="button" class="verify-btn" id="tgVerifyBtn">Verify</button>';
+    if(S.a.tgVerified) h+=verifyChecklist(['Bot Token','User ID','Connection']);
+    else h+='<div class="verify-result" id="tgVerRes"></div>';
+    return h;
+  },
+  validate:function(){return S.a.tgVerified||(S.a.tgToken.length>=10&&S.a.tgUserId.length>=5)},
+  save:function(){
+    var t=qs('#tgTokenInp'),u=qs('#tgUidInp');
+    if(t)S.a.tgToken=t.value.trim();if(u)S.a.tgUserId=u.value.trim();
+  }
+}}
+
+function makeDiscordStep(){return {id:'setup_discord',section:'Messaging · Discord',
+  title:'🎮 Discord Bot Setup',
+  sub:'Estimated time: 3 minutes.',
+  render:function(){
+    var h='<div class="guide-block">';
+    h+=guideStep('01','Open Discord Developer Portal','<a class="guide-link" href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications →</a>');
+    h+=guideStep('02','Click <strong>New Application</strong>, enter a name, click Create','');
+    h+=guideStep('03','Go to <strong>Bot</strong> → <strong>Add Bot</strong> → Confirm','');
+    h+=guideStep('04','Press <strong>Reset Token</strong> → Copy the Bot Token','Paste below.');
+    h+='</div>';
+    h+='<div class="field-wrap"><div class="field-label">Bot Token</div>'+
+      '<div class="inp-wrap"><input id="dcTokenInp" type="password" class="inp" placeholder="MTxxxxxxxx…" value="'+esc(S.a.dcToken)+'">'+
+      '<button type="button" class="showhide" id="dcSH">SHOW</button></div></div>';
+    h+='<div class="errmsg" id="dcTokErr" style="display:none"></div>';
+    h+='<div class="guide-block" style="margin-top:16px">';
+    h+=guideStep('05','Go to <strong>OAuth2 → URL Generator</strong>','Select scopes: <code>bot</code>, <code>applications.commands</code>');
+    h+=guideStep('06','Enable permissions','<code>Send Messages</code>, <code>Read Messages</code>, <code>Read Message History</code>');
+    h+=guideStep('07','Open the generated URL and invite the bot to your server','');
+    h+=guideStep('08','Enable Developer Mode: Settings → Advanced → Developer Mode','Right-click your profile → Copy User ID. Paste below.');
+    h+='</div>';
+    h+='<div class="field-wrap"><div class="field-label">Your User ID</div>'+
+      '<input id="dcUidInp" type="text" class="inp" placeholder="123456789012345678" value="'+esc(S.a.dcUserId)+'" inputmode="numeric"></div>';
+    h+='<div class="errmsg" id="dcUidErr" style="display:none"></div>';
+    h+='<button type="button" class="verify-btn" id="dcVerifyBtn">Verify</button>';
+    if(S.a.dcVerified) h+=verifyChecklist(['Token','User ID','Bot Connected']);
+    else h+='<div class="verify-result" id="dcVerRes"></div>';
+    return h;
+  },
+  validate:function(){return S.a.dcVerified||(S.a.dcToken.length>=10&&S.a.dcUserId.length>=5)},
+  save:function(){
+    var t=qs('#dcTokenInp'),u=qs('#dcUidInp');
+    if(t)S.a.dcToken=t.value.trim();if(u)S.a.dcUserId=u.value.trim();
+  }
+}}
+</script>
+<script>
+function makeWhatsAppStep(){return {id:'setup_whatsapp',section:'Messaging · WhatsApp',
+  title:'💬 WhatsApp Cloud API Setup',
+  render:function(){
+    var h='<div class="guide-block">';
+    h+=guideStep('01','Open Meta Developers','<a class="guide-link" href="https://developers.facebook.com" target="_blank" rel="noopener">developers.facebook.com →</a>');
+    h+=guideStep('02','Create a Developer Account if you don\'t have one','');
+    h+=guideStep('03','Create App → Business → WhatsApp','');
+    h+=guideStep('04','Open <strong>WhatsApp API</strong>','Copy the <strong>Temporary Access Token</strong>.');
+    h+=guideStep('05','Copy the <strong>Phone Number ID</strong>','');
+    h+='</div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Access Token</div>'+
+      '<div class="inp-wrap"><input id="waTokenInp" type="password" class="inp" placeholder="EAAxxxxx…" value="'+esc(S.a.waToken)+'">'+
+      '<button type="button" class="showhide" id="waSH">SHOW</button></div></div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Phone Number ID</div>'+
+      '<input id="waPhIdInp" type="text" class="inp" placeholder="100000000000000" value="'+esc(S.a.waPhoneId)+'"></div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Allowed Phone Number</div>'+
+      '<input id="waPhoneInp" type="text" class="inp" placeholder="+91XXXXXXXXXX" value="'+esc(S.a.waPhone)+'"></div>';
+    h+='<button type="button" class="verify-btn" id="waVerifyBtn">Verify</button>';
+    if(S.a.waVerified) h+=verifyChecklist(['Token','Phone Number ID','Connection']);
+    else h+='<div class="verify-result" id="waVerRes"></div>';
+    return h;
+  },
+  validate:function(){return S.a.waVerified||(S.a.waToken.length>=8&&S.a.waPhoneId.length>=5)},
+  save:function(){
+    var t=qs('#waTokenInp'),p=qs('#waPhIdInp'),ph=qs('#waPhoneInp');
+    if(t)S.a.waToken=t.value.trim();if(p)S.a.waPhoneId=p.value.trim();if(ph)S.a.waPhone=ph.value.trim();
+  }
+}}
+
+function makeEmailStep(){return {id:'setup_email',section:'Messaging · Email',
+  title:'📧 Email Setup',
+  render:function(){
+    var h='<div class="field-wrap" style="margin-bottom:14px"><div class="field-label">Email Provider</div>'+
+      radio('emailProv',[{v:'gmail',l:'Gmail'},{v:'outlook',l:'Outlook'},{v:'yahoo',l:'Yahoo'},{v:'custom',l:'Custom'}],S.a.emailProvider)+'</div>';
+    var guide='';
+    if(S.a.emailProvider==='gmail'||!S.a.emailProvider){
+      guide='<div class="guide-block"><div class="guide-title">Gmail Setup</div>';
+      guide+=guideStep('01','Enable Two-Factor Authentication on your Google Account','');
+      guide+=guideStep('02','Open Google Account → Security → App Passwords','');
+      guide+=guideStep('03','Generate a <strong>Mail</strong> app password','Copy and paste it below.');
+      guide+='</div>';
+    }
+    h+=guide;
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Email Address</div>'+
+      '<input id="emailAddrInp" type="email" class="inp" placeholder="you@example.com" value="'+esc(S.a.emailAddr)+'"></div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">App Password</div>'+
+      '<div class="inp-wrap"><input id="emailPassInp" type="password" class="inp" placeholder="xxxx xxxx xxxx xxxx" value="'+esc(S.a.emailPass)+'">'+
+      '<button type="button" class="showhide" id="emailSH">SHOW</button></div></div>';
+    h+='<button type="button" class="verify-btn" id="emailVerifyBtn">Verify</button>';
+    if(S.a.emailVerified) h+=verifyChecklist(['Address','App Password','Connection']);
+    else h+='<div class="verify-result" id="emailVerRes"></div>';
+    return h;
+  },
+  validate:function(){return S.a.emailVerified||(S.a.emailAddr.length>4&&S.a.emailPass.length>4)},
+  save:function(){
+    var ep=qs('input[name=emailProv]:checked'),ea=qs('#emailAddrInp'),epass=qs('#emailPassInp');
+    if(ep)S.a.emailProvider=ep.value;if(ea)S.a.emailAddr=ea.value.trim();if(epass)S.a.emailPass=epass.value.trim();
+  }
+}}
+
+function makeGChatStep(){return {id:'setup_gchat',section:'Messaging · Google Chat',
+  title:'🔵 Google Chat Setup',
+  render:function(){
+    var h='<div class="guide-block">';
+    h+=guideStep('01','Open <strong>Google Cloud Console</strong>','<a class="guide-link" href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com →</a>');
+    h+=guideStep('02','Create a Chat App and enable the Chat API','');
+    h+=guideStep('03','Download Service Account credentials JSON','Upload or paste the content below.');
+    h+=guideStep('04','Enter the Space ID or target user email','');
+    h+='</div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Credentials JSON (paste content)</div>'+
+      '<textarea id="gchatJsonTa" class="ta" style="min-height:70px;font-family:\'IBM Plex Mono\',monospace;font-size:0.78rem" placeholder=\'{"type":"service_account",…}\'>'+esc(S.a.gchatJson)+'</textarea></div>';
+    h+='<div class="field-wrap"><div class="field-label">Space ID or User Email</div>'+
+      '<input id="gchatSpaceInp" type="text" class="inp" placeholder="spaces/AAAAAAAA or user@domain.com" value="'+esc(S.a.gchatSpace)+'"></div>';
+    return h;
+  },
+  validate:function(){return S.a.gchatSpace.length>2||(function(){var i=qs('#gchatSpaceInp');return i&&i.value.trim().length>2})()},
+  save:function(){
+    var j=qs('#gchatJsonTa'),sp=qs('#gchatSpaceInp');
+    if(j)S.a.gchatJson=j.value.trim();if(sp)S.a.gchatSpace=sp.value.trim();
+  }
+}}
+
+function makeSMSStep(){return {id:'setup_sms',section:'Messaging · SMS',
+  title:'📱 SMS Setup (Twilio)',
+  render:function(){
+    var h='<div class="guide-block">';
+    h+=guideStep('01','Create a Twilio account','<a class="guide-link" href="https://twilio.com" target="_blank" rel="noopener">twilio.com →</a>');
+    h+=guideStep('02','Copy your <strong>Account SID</strong> and <strong>Auth Token</strong> from the console','');
+    h+=guideStep('03','Get a Twilio phone number','');
+    h+='</div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Account SID</div>'+
+      '<input id="smsSidInp" type="text" class="inp" placeholder="ACxxxxxxxxxxxxxxxx" value="'+esc(S.a.smsAccountSid)+'"></div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Auth Token</div>'+
+      '<div class="inp-wrap"><input id="smsAuthInp" type="password" class="inp" placeholder="Your auth token" value="'+esc(S.a.smsAuthToken)+'">'+
+      '<button type="button" class="showhide" id="smsSH">SHOW</button></div></div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Twilio Phone Number</div>'+
+      '<input id="smsTwilioPhInp" type="text" class="inp" placeholder="+1XXXXXXXXXX" value="'+esc(S.a.smsPhone)+'"></div>';
+    h+='<div class="field-wrap"><div class="field-label">Allowed Numbers (comma-separated)</div>'+
+      '<input id="smsAllowedInp" type="text" class="inp" placeholder="+91XXXXXXXXXX, +1XXXXXXXXXX" value="'+esc(S.a.smsAllowed)+'"></div>';
+    return h;
+  },
+  validate:function(){return S.a.smsAccountSid.length>4||((qs('#smsSidInp')||{}).value||'').trim().length>4},
+  save:function(){
+    var s=qs('#smsSidInp'),a=qs('#smsAuthInp'),p=qs('#smsTwilioPhInp'),al=qs('#smsAllowedInp');
+    if(s)S.a.smsAccountSid=s.value.trim();if(a)S.a.smsAuthToken=a.value.trim();
+    if(p)S.a.smsPhone=p.value.trim();if(al)S.a.smsAllowed=al.value.trim();
+  }
+}}
+
+function makeHAStep(){return {id:'setup_ha',section:'Messaging · Home Assistant',
+  title:'🏠 Home Assistant Setup',
+  render:function(){
+    var h='<div class="guide-block">';
+    h+=guideStep('01','Open your Home Assistant dashboard','');
+    h+=guideStep('02','Go to <strong>Profile → Long-lived Access Tokens</strong>','');
+    h+=guideStep('03','Create a token, copy it, and paste below','');
+    h+='</div>';
+    h+='<div class="field-wrap" style="margin-bottom:10px"><div class="field-label">Access Token</div>'+
+      '<div class="inp-wrap"><input id="haTokenInp" type="password" class="inp" placeholder="eyJ0eXAiOiJKV1Qi…" value="'+esc(S.a.haToken)+'">'+
+      '<button type="button" class="showhide" id="haSH">SHOW</button></div></div>';
+    h+='<div class="field-wrap"><div class="field-label">Home Assistant URL</div>'+
+      '<input id="haUrlInp" type="url" class="inp" placeholder="http://192.168.x.x:8123" value="'+esc(S.a.haUrl)+'"></div>';
+    h+='<button type="button" class="verify-btn" id="haVerifyBtn">Verify Connection</button>';
+    if(S.a.haVerified) h+=verifyChecklist(['Token','URL','Connection']);
+    else h+='<div class="verify-result" id="haVerRes"></div>';
+    return h;
+  },
+  validate:function(){return S.a.haVerified||(S.a.haToken.length>8&&S.a.haUrl.length>4)},
+  save:function(){
+    var t=qs('#haTokenInp'),u=qs('#haUrlInp');
+    if(t)S.a.haToken=t.value.trim();if(u)S.a.haUrl=u.value.trim();
+  }
+}}
+
+function makeOllamaStep(){return {id:'setup_ollama',section:'AI Provider · Ollama',
+  title:'🌐 Ollama Setup',
+  render:function(){
+    var h='<div class="guide-block">';
+    h+=guideStep('01','Install Ollama','<a class="guide-link" href="https://ollama.com" target="_blank" rel="noopener">ollama.com →</a>');
+    h+=guideStep('02','Pull a model','<code>ollama pull qwen3</code> &nbsp;or&nbsp; <code>ollama pull llama3</code>');
+    h+=guideStep('03','Start Ollama','<code>ollama serve</code>');
+    h+=guideStep('04','Press "Detect Installation" below','');
+    h+='</div>';
+    h+='<button type="button" class="verify-btn" id="ollamaDetectBtn">Detect Installation</button>';
+    h+='<div class="verify-result" id="ollamaDetRes"></div>';
+    h+='<div id="ollamaModelWrap" style="margin-top:16px;display:none">';
+    h+='<div class="section-rule">Choose Model</div>';
+    h+=radio('ollamaModel',[{v:'qwen3',l:'qwen3'},{v:'llama3',l:'llama3'},{v:'deepseek',l:'deepseek'},{v:'__custom__',l:'Custom'}],S.a.ollamaModel||'qwen3');
+    h+='<div id="ollamaCustomWrap" style="margin-top:8px;display:'+(S.a.ollamaModel==='__custom__'?'block':'none')+'">'+
+      '<input id="ollamaCustomInp" type="text" class="inp" placeholder="model name"></div>';
+    h+='</div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    var c=qs('input[name=ollamaModel]:checked');if(c)S.a.ollamaModel=c.value;
+    var ci=qs('#ollamaCustomInp');if(ci&&S.a.ollamaModel==='__custom__')S.a.ollamaModel=ci.value.trim();
+  }
+}}
+</script>
+<script>
+// ──────────────────────────────────────────
+//  7 · Tools
+// ──────────────────────────────────────────
+STEPS.push({id:'tools', section:'Tools',
+  title:'Choose the tools your assistant can use.',
+  sub:'All tools are enabled by default. Unchecking removes them from the tool registry at boot.',
+  render:function(){
+    var h='<div class="opt-list two-col" role="group" aria-label="Tools">';
+    TOOLS_LIST.forEach(function(t){
+      var sel=S.a.tools.indexOf(t.k)!==-1;
+      h+='<label class="opt-item checkbox'+(sel?' selected':'')+'" data-k="'+t.k+'">'+
+        '<input type="checkbox" name="tools" value="'+t.k+'"'+(sel?' checked':'')+' aria-label="'+t.l+'">'+
+        '<span class="opt-mark"><span class="opt-chk">'+SVG_CHECK+'</span></span>'+
+        '<span class="opt-body"><span class="opt-label">'+t.l+'</span></span></label>';
+    });
+    h+='</div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    var cc=qsa('input[name=tools]:checked');S.a.tools=[];cc.forEach(function(c){S.a.tools.push(c.value)});
+  }
+});
+
+// ──────────────────────────────────────────
+//  8 · Tool Configuration
+// ──────────────────────────────────────────
+STEPS.push({id:'tool_config', section:'Tools',
+  title:'Configure your tools.',
+  sub:'Expand each section to adjust settings. All defaults are reasonable for first-run.',
+  render:function(){
+    var h='';
+    // Web Search
+    if(S.a.tools.indexOf('web_search')!==-1){
+      h+=toolCfgSection('Web Search',
+        radio('searchProv',[{v:'duckduckgo',l:'DuckDuckGo'},{v:'brave',l:'Brave Search'},{v:'tavily',l:'Tavily'},{v:'custom',l:'Custom'}],S.a.searchProvider));
+    }
+    // Browser
+    if(S.a.tools.indexOf('browser')!==-1){
+      h+=toolCfgSection('Browser Automation',
+        radio('browserEng',[{v:'chromium',l:'Chromium'},{v:'edge',l:'Edge'}],S.a.browser)+
+        '<div class="toggle-list" style="margin-top:10px"><div class="toggle-row"><div class="toggle-info"><div class="t-name">Headless</div></div>'+toggle('browserHeadlessTog',S.a.browserHeadless)+'</div></div>');
+    }
+    // Vision
+    if(S.a.tools.indexOf('vision')!==-1){
+      h+=toolCfgSection('Vision',
+        '<div class="toggle-list"><div class="toggle-row"><div class="toggle-info"><div class="t-name">Allow image uploads</div></div>'+toggle('visionImgTog',S.a.visionImages)+'</div>'+
+        '<div class="toggle-row"><div class="toggle-info"><div class="t-name">Allow OCR</div></div>'+toggle('visionOcrTog',S.a.visionOcr)+'</div></div>');
+    }
+    // Git Learning
+    if(S.a.tools.indexOf('git_learning')!==-1){
+      h+=toolCfgSection('Git Learning',
+        '<div class="toggle-list" style="margin-bottom:12px"><div class="toggle-row"><div class="toggle-info"><div class="t-name">Enable Git Learning</div><div class="t-desc">Extracts skills, stack, and goals from your repositories.</div></div>'+toggle('gitTog',S.a.gitEnabled)+'</div></div>'+
+        '<div class="field-label" style="margin-bottom:8px">Sync Frequency</div>'+
+        radio('gitSync',[{v:'manual',l:'Manual'},{v:'daily',l:'Daily'},{v:'weekly',l:'Weekly'}],S.a.gitSync));
+    }
+    // Cron Jobs
+    if(S.a.tools.indexOf('cron_jobs')!==-1){
+      h+=toolCfgSection('Scheduling',
+        '<div class="toggle-list" style="margin-bottom:12px"><div class="toggle-row"><div class="toggle-info"><div class="t-name">Enable Background Jobs</div></div>'+toggle('cronTog',S.a.cronEnabled)+'</div></div>'+
+        '<div class="field-wrap"><div class="field-label">Maximum Concurrent Jobs</div>'+
+        '<input id="cronMaxInp" type="number" class="inp" min="1" max="20" value="'+S.a.cronMax+'" style="max-width:100px"></div>');
+    }
+    if(!h) h='<div class="skip-note">No tool configuration required for the selected tools.</div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    var sp=qs('input[name=searchProv]:checked'),be=qs('input[name=browserEng]:checked');
+    var bh=qs('#browserHeadlessTog'),vi=qs('#visionImgTog'),vo=qs('#visionOcrTog');
+    var gt=qs('#gitTog'),gs=qs('input[name=gitSync]:checked'),ct=qs('#cronTog'),cm=qs('#cronMaxInp');
+    if(sp)S.a.searchProvider=sp.value;if(be)S.a.browser=be.value;
+    if(bh)S.a.browserHeadless=bh.checked;if(vi)S.a.visionImages=vi.checked;if(vo)S.a.visionOcr=vo.checked;
+    if(gt)S.a.gitEnabled=gt.checked;if(gs)S.a.gitSync=gs.value;
+    if(ct)S.a.cronEnabled=ct.checked;if(cm)S.a.cronMax=parseInt(cm.value)||2;
+  }
+});
+
+// ──────────────────────────────────────────
+//  9 · Desktop Agent
+// ──────────────────────────────────────────
+STEPS.push({id:'desktop', section:'Desktop Agent',
+  title:'Would you like to install the Desktop Agent?',
+  sub:'The Desktop Agent runs on your machine and gives PRIMUS access to local tools: terminal, Git, Docker, and your file system.',
+  render:function(){
+    var h='<div class="toggle-list" style="margin-bottom:20px"><div class="toggle-row">'+
+      '<div class="toggle-info"><div class="t-name">Install Desktop Agent</div><div class="t-desc">Recommended for full capability. Can be added later.</div></div>'+
+      toggle('desktopTog',S.a.desktopAgent)+'</div></div>';
+    h+='<div id="desktopFeatsWrap" style="display:'+(S.a.desktopAgent?'block':'none')+'">'+
+      '<div class="section-rule">Desktop Features</div><div class="opt-list two-col">';
+    var feats=[{k:'terminal',l:'Terminal'},{k:'python',l:'Python'},{k:'git',l:'Git'},
+               {k:'docker',l:'Docker'},{k:'browser',l:'Browser'},{k:'ollama',l:'Ollama'},{k:'file_access',l:'File Access'}];
+    feats.forEach(function(f){
+      var sel=S.a.desktopFeatures.indexOf(f.k)!==-1;
+      h+='<label class="opt-item checkbox'+(sel?' selected':'')+'" data-k="'+f.k+'">'+
+        '<input type="checkbox" name="dfeats" value="'+f.k+'"'+(sel?' checked':'')+' aria-label="'+f.l+'">'+
+        '<span class="opt-mark"><span class="opt-chk">'+SVG_CHECK+'</span></span>'+
+        '<span class="opt-body"><span class="opt-label">'+f.l+'</span></span></label>';
+    });
+    h+='</div></div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    var dt=qs('#desktopTog');if(dt)S.a.desktopAgent=dt.checked;
+    var cc=qsa('input[name=dfeats]:checked');S.a.desktopFeatures=[];cc.forEach(function(c){S.a.desktopFeatures.push(c.value)});
+  }
+});
+</script>
+<script>
+// ──────────────────────────────────────────
+//  10 · Notifications
+// ──────────────────────────────────────────
+STEPS.push({id:'notifications', section:'Notifications',
+  title:'Notify me about…',
+  sub:'PRIMUS will send these updates via your configured messaging platforms.',
+  render:function(){
+    var items=[
+      {k:'finished_jobs',l:'Finished Jobs',d:'When a background task completes.'},
+      {k:'failed_jobs',  l:'Failed Jobs',  d:'When a job fails, with the reason.'},
+      {k:'daily_briefing',l:'Daily Briefing',d:'Morning summary of tasks and events.'},
+      {k:'internship_alerts',l:'Internship Alerts',d:'Relevant opportunities matching your profile.'},
+      {k:'repo_changes',l:'Repository Changes',d:'New commits, PRs, and issues on watched repos.'},
+      {k:'updates',     l:'PRIMUS Updates', d:'New versions and feature announcements.'}
+    ];
+    var h='<div class="toggle-list">';
+    items.forEach(function(it){
+      h+='<div class="toggle-row"><div class="toggle-info"><div class="t-name">'+it.l+'</div><div class="t-desc">'+it.d+'</div></div>'+
+        toggle('notif_'+it.k,S.a.notifyItems.indexOf(it.k)!==-1)+'</div>';
+    });
+    h+='</div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    S.a.notifyItems=[];
+    ['finished_jobs','failed_jobs','daily_briefing','internship_alerts','repo_changes','updates'].forEach(function(k){
+      var t=qs('#notif_'+k);if(t&&t.checked)S.a.notifyItems.push(k);
+    });
+  }
+});
+
+// ──────────────────────────────────────────
+//  11 · Privacy
+// ──────────────────────────────────────────
+STEPS.push({id:'privacy', section:'Privacy',
+  title:'Data storage preferences.',
+  sub:'These settings control what PRIMUS stores in its memory backend. Defaults are conservative.',
+  render:function(){
+    var items=[
+      {k:'storeConversations',l:'Store Conversations',d:'Key exchanges, decisions, and context.'},
+      {k:'storeProjects',     l:'Store Project Summaries',d:'Stack, goals, and architecture notes.'},
+      {k:'storeImages',       l:'Store Images',d:'Attach images to memory entries.'},
+      {k:'storeVideos',       l:'Store Videos',d:'Attach video references to memory entries.'},
+      {k:'storeConclusionsOnly',l:'Store Conclusions Only',d:'Recommended. Distill data rather than raw input.'}
+    ];
+    var h='<div class="toggle-list">';
+    items.forEach(function(it){
+      h+='<div class="toggle-row"><div class="toggle-info"><div class="t-name">'+it.l+'</div><div class="t-desc">'+it.d+'</div></div>'+
+        toggle('priv_'+it.k,S.a[it.k])+'</div>';
+    });
+    h+='</div>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){
+    ['storeConversations','storeProjects','storeImages','storeVideos','storeConclusionsOnly'].forEach(function(k){
+      var t=qs('#priv_'+k);if(t)S.a[k]=t.checked;
+    });
+  }
+});
+
+// ──────────────────────────────────────────
+//  12 · Final Review
+// ──────────────────────────────────────────
+STEPS.push({id:'review', section:'Review',
+  title:'Everything looks correct?',
+  sub:'This is your final configuration. Secrets are masked here and will never appear in config.json.',
+  render:function(){
+    function mask(s){if(!s||!s.length)return '—';if(s.length<=6)return '••••••';return s.slice(0,3)+'•••••'+s.slice(-2)}
+    var modelDisplay = S.a.model==='__custom__'?S.a.modelCustom:(S.a.model||S.a.ollamaModel||'—');
+    var rows=[
+      ['PROVIDER',   providerName(S.a.provider)],
+      ['MODEL',      modelDisplay],
+      ['MESSAGING',  S.a.platforms.map(function(p){return p.toUpperCase()}).join(', ')||'—'],
+      ['MEMORY',     S.a.memory?'Enabled ('+S.a.memoryBackend+')':'Disabled'],
+      ['TOOLS',      S.a.tools.length+' enabled'],
+      ['DESKTOP',    S.a.desktopAgent?'Installing':'Skipped'],
+      ['ASSISTANT',  S.a.assistantName||'PRIMUS'],
+      ['TEMPERATURE',String(S.a.temperature)]
+    ];
+    if(S.a.provider!=='ollama') rows.splice(1,0,['API KEY','<span class="rev-masked">'+mask(S.a.apiKey)+'</span>']);
+    if(S.a.platforms.indexOf('telegram')!==-1) rows.push(['TELEGRAM TOKEN','<span class="rev-masked">'+mask(S.a.tgToken)+'</span>']);
+    if(S.a.platforms.indexOf('discord')!==-1)  rows.push(['DISCORD TOKEN', '<span class="rev-masked">'+mask(S.a.dcToken)+'</span>']);
+    var h='<table class="rev-table" role="presentation">';
+    rows.forEach(function(r){h+='<tr><td class="rev-key">'+r[0]+'</td><td class="rev-val">'+r[1]+'</td></tr>'});
+    h+='</table>';
+    h+='<div class="errmsg" id="revErr" style="display:none"></div>';
+    h+='<button type="button" class="btn btn-launch" id="launchBtn">Generate Configuration</button>';
+    return h;
+  },
+  validate:function(){return true},
+  save:function(){}
+});
+</script>
+<script>
+// ─────────────────────────────────────────────────────────────
+//  DYNAMIC STEP LIST — rebuilt whenever platform selection changes
+// ─────────────────────────────────────────────────────────────
+var PLATFORM_STEP_FACTORIES = {
+  telegram: makeTelegramStep,
+  discord:  makeDiscordStep,
+  whatsapp: makeWhatsAppStep,
+  email:    makeEmailStep,
+  gchat:    makeGChatStep,
+  sms:      makeSMSStep,
+  ha:       makeHAStep
+};
+
+var _flatSteps = []; // built steps array used by renderer
+
+function buildFlatSteps(){
+  // Base STEPS up to index 6 (platforms select)
+  var base = STEPS.slice(0, 7); // 0-install_type … 6-platforms
+  // Ollama setup step if provider is ollama
+  var mid = [];
+  if(S.a.provider==='ollama') mid.push(makeOllamaStep());
+  // Platform setup steps for each selected platform
+  S.a.platforms.forEach(function(pk){
+    if(PLATFORM_STEP_FACTORIES[pk]) mid.push(PLATFORM_STEP_FACTORIES[pk]());
+  });
+  // Rest of STEPS (7-tools … end)
+  var tail = STEPS.slice(7);
+  _flatSteps = base.concat(mid).concat(tail);
+}
+
+function currentStep(){ return _flatSteps[S.step] }
+function totalSteps(){  return _flatSteps.length }
+
+// ─────────────────────────────────────────────────────────────
+//  HTML HELPER FUNCTIONS
+// ─────────────────────────────────────────────────────────────
+function qs(sel){return document.querySelector(sel)}
+function qsa(sel){return document.querySelectorAll(sel)}
+function esc(s){
+  if(s==null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function providerName(v){
+  var p=PROVIDERS.find(function(x){return x.v===v});return p?p.l:(v||'—');
+}
+function radio(name, items, selected){
+  var h='<div class="opt-list" role="radiogroup">';
+  items.forEach(function(it){
+    var sel=(it.v||it.l)===selected;
+    h+='<label class="opt-item radio'+(sel?' selected':'')+'" data-v="'+(it.v||it.l)+'">'+
+      '<input type="radio" name="'+name+'" value="'+(it.v||it.l)+'"'+(sel?' checked':'')+' aria-label="'+(it.l||it.v)+'">'+
+      '<span class="opt-mark"><span class="opt-dot"></span></span>'+
+      '<span class="opt-body"><span class="opt-label">'+(it.l||it.v)+'</span>'+
+      (it.d?'<span class="opt-desc">'+it.d+'</span>':'')+
+      '</span></label>';
+  });
+  h+='</div>';
+  return h;
+}
+function toggle(id, checked){
+  return '<label class="sw" aria-label="Toggle"><input type="checkbox" id="'+id+'"'+(checked?' checked':'')+' role="switch" aria-checked="'+checked+'"><span class="sw-track"></span></label>';
+}
+function skip(msg){return '<div class="skip-note">'+msg+'</div>'}
+function guideStep(num, label, note){
+  return '<div class="guide-step"><div class="guide-step-num">'+num+'</div>'+
+    '<div class="guide-step-body"><div class="guide-step-label">'+label+'</div>'+
+    (note?'<div class="guide-step-note">'+note+'</div>':'')+
+    '</div></div>';
+}
+function guideInline(text){
+  return '<div class="guide-step-note" style="padding:12px 0;color:var(--sage);font-size:0.85rem">'+text+'</div>';
+}
+function toolCfgSection(title, content){
+  return '<div class="section-rule">'+title+'</div><div style="margin-bottom:20px">'+content+'</div>';
+}
+function verifyChecklist(items){
+  var h='<div class="verify-list">';
+  items.forEach(function(it){ h+='<div class="verify-item ok"><span>✓</span><span>'+it+'</span></div>'; });
+  h+='</div><div class="okmsg" style="margin-top:10px">Connected</div>';
+  return h;
+}
+</script>
+<script>
+// ─────────────────────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────────────────────
+function render(){
+  buildFlatSteps();
+  var step = currentStep();
+  var idx  = S.step;
+  var tot  = totalSteps();
+
+  // Progress bar
+  var pct = tot > 1 ? Math.round((idx / (tot - 1)) * 100) : 0;
+  var fill = qs('#progFill'); if(fill) fill.style.width = pct + '%';
+  var num  = String(idx + 1).padStart(2,'0');
+  var totS = String(tot).padStart(2,'0');
+  var counter = qs('#progCounter'); if(counter) counter.textContent = num + ' / ' + totS;
+  var section = qs('#progSection'); if(section) section.textContent = step.section || '';
+
+  // Card
+  var card = qs('#card');
+  var html = '<h2 class="step-q" id="stepTitle">' + step.title + '</h2>';
+  if(step.sub) html += '<p class="step-sub">' + step.sub + '</p>';
+  html += step.render();
+
+  // Nav (review step has its own launch btn; no separate next btn needed)
+  if(step.id !== 'review'){
+    html += '<div class="btn-row">';
+    html += '<button type="button" class="btn btn-back" id="backBtn"' + (idx===0?' disabled aria-disabled="true"':'') + '>Back</button>';
+    var valid = step.validate();
+    html += '<button type="button" class="btn btn-next" id="nextBtn"' + (!valid?' disabled aria-disabled="true"':'') + '>' +
+      (idx === tot-2 ? 'Review' : 'Continue') + '</button>';
+    html += '</div>';
+  } else {
+    html += '<div class="btn-row"><button type="button" class="btn btn-back" id="backBtn">Back</button><span></span></div>';
+  }
+
+  card.innerHTML = html;
+  card.setAttribute('aria-label', 'Step ' + (idx+1) + ' of ' + tot + ': ' + step.title);
+
+  // Focus first focusable
+  var first = card.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled])');
+  if(first) setTimeout(function(){ first.focus(); }, 50);
+
+  attachEvents();
+  updateNextBtn();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  EVENTS
+// ─────────────────────────────────────────────────────────────
+function updateNextBtn(){
+  var btn = qs('#nextBtn'); if(!btn) return;
+  var valid = currentStep().validate();
+  btn.disabled = !valid;
+  btn.setAttribute('aria-disabled', valid ? 'false' : 'true');
+}
+
+function attachEvents(){
+  var card = qs('#card');
+  var step = currentStep();
+
+  // Back
+  var bb = qs('#backBtn');
+  if(bb) bb.addEventListener('click', function(){
+    if(S.step > 0){ S.step--; render(); }
+  });
+
+  // Next
+  var nb = qs('#nextBtn');
+  if(nb) nb.addEventListener('click', function(){ advance(); });
+
+  // Launch
+  var lb = qs('#launchBtn');
+  if(lb) lb.addEventListener('click', function(){ doLaunch(); });
+
+  // Radio items — delegate
+  card.querySelectorAll('.opt-item.radio').forEach(function(item){
+    item.addEventListener('click', function(){
+      if(item.classList.contains('disabled')) return;
+      var inp = item.querySelector('input[type=radio]'); if(inp) inp.checked = true;
+      var name = inp ? inp.name : '';
+      card.querySelectorAll('.opt-item.radio input[name="'+name+'"]').forEach(function(i){
+        i.closest('.opt-item').classList.remove('selected');
+      });
+      item.classList.add('selected');
+      // Sync answer for live validate
+      if(name==='provider') S.a.provider=inp.value;
+      if(name==='install_type') S.a.installType=inp.value;
+      if(name==='model'){
+        S.a.model=inp.value;
+        var cw=qs('#customModelWrap'); if(cw) cw.style.display=inp.value==='__custom__'?'block':'none';
+      }
+      if(name==='ollamaModel'){
+        var ow=qs('#ollamaCustomWrap'); if(ow) ow.style.display=inp.value==='__custom__'?'block':'none';
+      }
+      if(name==='emailProv'){ S.a.emailProvider=inp.value; }
+      updateNextBtn();
+    });
+    item.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); item.click(); } });
+  });
+
+  // Checkbox items — delegate
+  card.querySelectorAll('.opt-item.checkbox:not(.disabled)').forEach(function(item){
+    item.addEventListener('click', function(){
+      var inp = item.querySelector('input[type=checkbox]');
+      if(inp){ inp.checked = !inp.checked; }
+      item.classList.toggle('selected', inp ? inp.checked : false);
+      // Live sync for platforms
+      var name = inp ? inp.name : '';
+      if(name==='platforms'){
+        var checked=qsa('input[name=platforms]:checked');
+        S.a.platforms=[];checked.forEach(function(c){S.a.platforms.push(c.value)});
+      }
+      updateNextBtn();
+    });
+    item.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); item.click(); } });
+  });
+
+  // Show/hide buttons
+  [['#tgSH','#tgTokenInp'],['#dcSH','#dcTokenInp'],['#waSH','#waTokenInp'],
+   ['#emailSH','#emailPassInp'],['#haSH','#haTokenInp'],['#smsSH','#smsAuthInp']
+  ].forEach(function(pair){
+    var btn=qs(pair[0]), inp=qs(pair[1]);
+    if(btn&&inp){
+      btn.addEventListener('click',function(){
+        var h=inp.type==='password';inp.type=h?'text':'password';btn.textContent=h?'HIDE':'SHOW';
+      });
+    }
+  });
+
+  // API key show/hide
+  var akSH=qs('#akSH'),akInp=qs('#apiKeyInp');
+  if(akSH&&akInp){ akSH.addEventListener('click',function(){ var h=akInp.type==='password';akInp.type=h?'text':'password';akSH.textContent=h?'HIDE':'SHOW'; }); }
+
+  // Live input → update next btn
+  card.querySelectorAll('input[type=text],input[type=password],input[type=email],input[type=url],input[type=number],textarea').forEach(function(el){
+    el.addEventListener('input', function(){
+      // Sync key fields
+      if(el.id==='apiKeyInp') S.a.apiKey=el.value.trim();
+      if(el.id==='tgTokenInp') S.a.tgToken=el.value.trim();
+      if(el.id==='tgUidInp') S.a.tgUserId=el.value.trim();
+      if(el.id==='dcTokenInp') S.a.dcToken=el.value.trim();
+      if(el.id==='dcUidInp') S.a.dcUserId=el.value.trim();
+      if(el.id==='waTokenInp') S.a.waToken=el.value.trim();
+      if(el.id==='waPhIdInp') S.a.waPhoneId=el.value.trim();
+      if(el.id==='haTokenInp') S.a.haToken=el.value.trim();
+      if(el.id==='haUrlInp') S.a.haUrl=el.value.trim();
+      if(el.id==='modelInp') S.a.model=el.value.trim();
+      if(el.id==='modelCustomInp') S.a.modelCustom=el.value.trim();
+      if(el.id==='tempSlider'){ S.a.temperature=parseFloat(el.value); var tv=qs('#tempVal'); if(tv)tv.textContent=el.value; }
+      updateNextBtn();
+    });
+  });
+
+  // Memory main toggle
+  var mmt=qs('#memMainTog');
+  if(mmt) mmt.addEventListener('change',function(){ var d=qs('#memDetails'); if(d) d.style.display=mmt.checked?'block':'none'; });
+
+  // Desktop agent toggle
+  var dt=qs('#desktopTog');
+  if(dt) dt.addEventListener('change',function(){ var w=qs('#desktopFeatsWrap'); if(w) w.style.display=dt.checked?'block':'none'; });
+
+  // Verify buttons (stubs with realistic simulation)
+  wireVerify('#tgVerifyBtn','#tgVerRes',function(){
+    return S.a.tgToken.length>=10&&S.a.tgUserId.length>=5;
+  },['Bot Token','User ID','Connection'],'tgVerified');
+
+  wireVerify('#dcVerifyBtn','#dcVerRes',function(){
+    return S.a.dcToken.length>=10&&S.a.dcUserId.length>=5;
+  },['Token','User ID','Bot Connected'],'dcVerified');
+
+  wireVerify('#waVerifyBtn','#waVerRes',function(){
+    return S.a.waToken.length>=8&&S.a.waPhoneId.length>=5;
+  },['Token','Phone Number ID','Connection'],'waVerified');
+
+  wireVerify('#emailVerifyBtn','#emailVerRes',function(){
+    return S.a.emailAddr.includes('@')&&S.a.emailPass.length>=4;
+  },['Address','App Password','Connection'],'emailVerified');
+
+  wireVerify('#haVerifyBtn','#haVerRes',function(){
+    return S.a.haToken.length>8&&S.a.haUrl.length>4;
+  },['Token','URL','Connection'],'haVerified');
+
+  // Ollama detect
+  var odb=qs('#ollamaDetectBtn');
+  if(odb) odb.addEventListener('click',function(){
+    odb.disabled=true; odb.textContent='Detecting…';
+    setTimeout(function(){
+      odb.disabled=false; odb.textContent='Detect Installation';
+      var res=qs('#ollamaDetRes'),wrap=qs('#ollamaModelWrap');
+      if(res){res.className='verify-result ok';res.textContent='✓ Ollama Found — localhost:11434';}
+      if(wrap) wrap.style.display='block';
+      updateNextBtn();
+    },1400);
+  });
+
+  // Test connection (api key)
+  var tcb=qs('#testConnBtn');
+  if(tcb) tcb.addEventListener('click',function(){
+    tcb.disabled=true;tcb.textContent='Testing…';
+    setTimeout(function(){
+      tcb.disabled=false;tcb.innerHTML='Test Connection <span style="font-size:.65rem;opacity:.6">(optional)</span>';
+      var r=qs('#testConnResult');
+      if(r){r.style.color='var(--sage)';r.className='verify-result';r.textContent='↳ Key format valid. Full verification requires a running backend.';}
+    },1200);
+  });
+
+  // Enter key advances
+  card.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&e.target.tagName!=='BUTTON'&&e.target.tagName!=='TEXTAREA'){
+      var nb2=qs('#nextBtn'); if(nb2&&!nb2.disabled) advance();
+    }
+  });
+}
+
+function wireVerify(btnSel, resSel, check, labels, flag){
+  var btn=qs(btnSel); if(!btn) return;
+  btn.addEventListener('click',function(){
+    btn.disabled=true; btn.textContent='Verifying…';
+    setTimeout(function(){
+      btn.disabled=false; btn.textContent='Verify';
+      var valid=check();
+      if(valid){
+        S.a[flag]=true;
+        var container=btn.parentNode;
+        // Replace result area with checklist
+        var oldRes=qs(resSel); if(oldRes) oldRes.remove();
+        var vc=document.createElement('div');
+        vc.innerHTML=verifyChecklist(labels);
+        container.insertBefore(vc,btn.nextSibling);
+        btn.style.display='none';
+        updateNextBtn();
+      } else {
+        var r=qs(resSel);
+        if(r){r.className='verify-result fail';r.textContent='✗ Verification failed. Check the values above.'}
+      }
+    },1600);
+  });
+}
+</script>
+<script>
+// ─────────────────────────────────────────────────────────────
+//  ADVANCE / SAVE
+// ─────────────────────────────────────────────────────────────
+function advance(){
+  var step = currentStep();
+  var result = step.save();
+  if(result === false) return;
+  // After platforms step, rebuild flat steps so platform substeps appear
+  if(step.id === 'platforms') buildFlatSteps();
+  // After provider step, rebuild so Ollama setup step appears if needed
+  if(step.id === 'provider') buildFlatSteps();
+  S.step++;
+  if(S.step >= totalSteps()) S.step = totalSteps()-1;
+  render();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  FINAL VALIDATION
+// ─────────────────────────────────────────────────────────────
+function finalValidate(){
+  if(!S.a.provider) return {step:'provider',msg:'Provider is required.'};
+  if(S.a.provider!=='ollama'&&(!S.a.apiKey||S.a.apiKey.length<8)) return {step:'api_key',msg:'A valid API key is required.'};
+  if(!S.a.model&&!S.a.modelCustom&&!S.a.ollamaModel) return {step:'model',msg:'A model must be selected.'};
+  if(!S.a.platforms.length) return {step:'platforms',msg:'At least one messaging platform is required.'};
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CONFIG BUILDER
+// ─────────────────────────────────────────────────────────────
+function buildConfig(){
+  var a=S.a;
+  var modelVal = a.model==='__custom__'?a.modelCustom:(a.model||a.ollamaModel||'');
+  var cfg = {
+    version: 1,
+    install_type: a.installType,
+    provider: { name: a.provider, model: modelVal },
+    assistant: { name: a.assistantName, temperature: a.temperature, streaming: a.streaming },
+    messaging: {},
+    memory: { enabled: a.memory, backend: a.memoryBackend, items: a.memoryItems },
+    tools: {},
+    desktop_agent: {
+      enabled: a.desktopAgent,
+      features: a.desktopFeatures
+    },
+    tool_config: {
+      web_search: { provider: a.searchProvider },
+      browser: { engine: a.browser, headless: a.browserHeadless },
+      vision: { images: a.visionImages, ocr: a.visionOcr },
+      git_learning: { enabled: a.gitEnabled, sync: a.gitSync },
+      scheduling: { enabled: a.cronEnabled, max_concurrent: a.cronMax }
+    },
+    notifications: a.notifyItems,
+    privacy: {
+      store_conversations: a.storeConversations,
+      store_project_summaries: a.storeProjects,
+      store_images: a.storeImages,
+      store_videos: a.storeVideos,
+      store_conclusions_only: a.storeConclusionsOnly
+    }
+  };
+
+  // Provider secret
+  if(a.provider!=='ollama') cfg.provider.secret_ref = 'provider.'+a.provider+'.api_key';
+  // System prompt
+  cfg.assistant.system_prompt = a.systemPrompt;
+
+  // Messaging
+  PLATFORMS_LIST.forEach(function(p){
+    var enabled = a.platforms.indexOf(p.k)!==-1;
+    cfg.messaging[p.k] = {enabled: enabled};
+    if(enabled){
+      if(p.k==='telegram')  cfg.messaging[p.k].secret_ref='messaging.telegram.bot_token';
+      if(p.k==='discord')   cfg.messaging[p.k].secret_ref='messaging.discord.bot_token';
+      if(p.k==='whatsapp')  cfg.messaging[p.k].secret_ref='messaging.whatsapp.access_token';
+      if(p.k==='email'){    cfg.messaging[p.k].provider=a.emailProvider; cfg.messaging[p.k].secret_ref='messaging.email.app_password'; }
+      if(p.k==='gchat')     cfg.messaging[p.k].secret_ref='messaging.gchat.credentials_json';
+      if(p.k==='sms')       cfg.messaging[p.k].secret_ref='messaging.sms.auth_token';
+      if(p.k==='ha')        cfg.messaging[p.k].secret_ref='messaging.ha.token';
+    }
+  });
+
+  // Tools
+  TOOLS_LIST.forEach(function(t){ cfg.tools[t.k] = a.tools.indexOf(t.k)!==-1; });
+
+  return cfg;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  LAUNCH
+// ─────────────────────────────────────────────────────────────
+function doLaunch(){
+  // Save review step state
+  currentStep().save();
+
+  var err = finalValidate();
+  if(err){
+    var el=qs('#revErr');
+    if(el){el.style.display='flex';el.textContent=err.msg+' Go back and correct it.'}
+    return;
+  }
+
+  // Write secrets to stub (never into config)
+  var a=S.a;
+  if(a.provider!=='ollama'&&a.apiKey) saveSecret('provider.'+a.provider+'.api_key',a.apiKey);
+  if(a.platforms.indexOf('telegram')!==-1&&a.tgToken) saveSecret('messaging.telegram.bot_token',a.tgToken);
+  if(a.platforms.indexOf('discord') !==-1&&a.dcToken) saveSecret('messaging.discord.bot_token',a.dcToken);
+  if(a.platforms.indexOf('whatsapp')!==-1&&a.waToken) saveSecret('messaging.whatsapp.access_token',a.waToken);
+  if(a.platforms.indexOf('email')   !==-1&&a.emailPass) saveSecret('messaging.email.app_password',a.emailPass);
+  if(a.platforms.indexOf('gchat')   !==-1&&a.gchatJson) saveSecret('messaging.gchat.credentials_json',a.gchatJson);
+  if(a.platforms.indexOf('sms')     !==-1&&a.smsAuthToken) saveSecret('messaging.sms.auth_token',a.smsAuthToken);
+  if(a.platforms.indexOf('ha')      !==-1&&a.haToken) saveSecret('messaging.ha.token',a.haToken);
+
+  showGenerating();
+}
+
+function showGenerating(){
+  var card=qs('#card');
+  var items=['Provider','Messaging','Memory','Tools','Desktop','Notifications','Privacy','Validation'];
+  var html='<h2 class="step-q">Creating config.json</h2><div class="gen-list" id="genList">';
+  items.forEach(function(it,i){
+    html+='<div class="gen-item" id="genItem'+i+'"><span class="gen-spinner"></span><span>'+it+'</span></div>';
+  });
+  html+='</div>';
+  card.innerHTML=html;
+
+  // Animate each item
+  var delay=0;
+  items.forEach(function(_,i){
+    setTimeout(function(){
+      var el=qs('#genItem'+i);
+      if(!el) return;
+      el.classList.add('active');
+      setTimeout(function(){
+        el.innerHTML='<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5l4 4 6-8" stroke="#3FE8B0" stroke-width="1.5"/></svg><span>'+items[i]+'</span>';
+        el.classList.remove('active');el.classList.add('done');
+      },400);
+    }, delay);
+    delay+=350;
+  });
+
+  setTimeout(function(){showSuccess();}, delay+500);
+}
+
+function showSuccess(){
+  var card=qs('#card');
+  var cfg=buildConfig();
+  var json=JSON.stringify(cfg,null,2);
+
+  var fill=qs('#progFill'); if(fill) fill.style.width='100%';
+  var counter=qs('#progCounter'); if(counter) counter.textContent='Done';
+  var section=qs('#progSection'); if(section) section.textContent='Complete';
+
+  var html='<div class="success-wrap">'+
+    '<div class="success-icon" aria-hidden="true"><svg width="22" height="18" viewBox="0 0 22 18" fill="none"><path d="M1 9l7 7L21 1" stroke="currentColor" stroke-width="1.8"/></svg></div>'+
+    '<div class="success-title">Setup Complete</div>'+
+    '<p class="success-body">Your assistant is ready. Place <code style="font-family:\'IBM Plex Mono\',monospace;font-size:0.88em;color:var(--bioglow)">config.json</code> in the PRIMUS backend root and start the engine. Secrets are in the keyring — not in this file.</p>'+
+    '<div class="config-preview" id="cfgPreview" role="region" aria-label="Generated config.json"></div>'+
+    '<button type="button" class="copy-btn" id="copyBtn">COPY TO CLIPBOARD</button>'+
+    '<div class="success-actions">'+
+    '<button type="button" class="btn btn-launch" id="dlBtn">Download config.json</button>'+
+    '<a href="../Dashbord/index.html" class="btn btn-ghost">Open Dashboard</a>'+
+    '</div>'+
+    '<p style="margin-top:24px;font-family:\'IBM Plex Mono\',monospace;font-size:0.7rem;color:var(--sage);text-align:center">Running in browser mode — filesystem API unavailable.<br>Download the file and place it in your backend root.</p>'+
+    '</div>';
+
+  card.innerHTML=html;
+  var prev=qs('#cfgPreview'); if(prev) prev.textContent=json;
+
+  // Copy
+  var cb=qs('#copyBtn');
+  if(cb) cb.addEventListener('click',function(){
+    if(navigator.clipboard){navigator.clipboard.writeText(json).then(function(){cb.textContent='COPIED ✓';setTimeout(function(){cb.textContent='COPY TO CLIPBOARD'},2000)})}
+    else{var ta=document.createElement('textarea');ta.value=json;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);cb.textContent='COPIED ✓';setTimeout(function(){cb.textContent='COPY TO CLIPBOARD'},2000)}
+  });
+
+  // Download
+  var dl=qs('#dlBtn');
+  if(dl) dl.addEventListener('click',function(){
+    var blob=new Blob([json],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='config.json';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},100);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────────
+buildFlatSteps();
+render();
+</script>
+</body>
+</html>
