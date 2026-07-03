@@ -1,0 +1,1 @@
+{"timestamp": "2026-07-03T18:23:33.813678Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}

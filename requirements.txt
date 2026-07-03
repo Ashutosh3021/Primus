@@ -1,0 +1,5 @@
+# Requirements for Primus backend
+httpx>=0.27.0
+tenacity>=8.5.0
+keyring>=25.0.0
+python-dotenv>=1.0.0
