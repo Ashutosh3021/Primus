@@ -3,16 +3,22 @@ Application startup sequence for Primus backend.
 """
 
 import asyncio
+import signal
 from backend.config import Config, load_config
-from backend.api import initialize_router, initialize_memory
+from backend.api import (
+    initialize_router, initialize_memory, initialize_tools,
+    initialize_messaging, start_messaging, stop_messaging
+)
 from backend.db import init_db
 from backend.logger import get_errors_logger
 
 logger = get_errors_logger(__name__)
+_running = False
 
 
 async def startup_async() -> Config:
     """Async startup sequence."""
+    global _running
     logger.info("Starting Primus backend...")
 
     # Load and validate config
@@ -28,13 +34,33 @@ async def startup_async() -> Config:
     logger.info("Initializing memory system...")
     initialize_memory()
 
+    # Initialize tools
+    logger.info("Initializing tool system...")
+    initialize_tools(config)
+
     # Initialize AI router
     logger.info("Initializing AI router...")
     initialize_router(config)
-    logger.info("AI router initialized.")
 
+    # Initialize messaging
+    logger.info("Initializing messaging...")
+    initialize_messaging(config)
+
+    _running = True
     logger.info("Primus backend startup complete.")
     return config
+
+
+async def run_forever(config: Config):
+    """Run forever, handling signals."""
+    global _running
+
+    # Start messaging
+    await start_messaging()
+
+    # Wait until shutdown
+    while _running:
+        await asyncio.sleep(1)
 
 
 def startup() -> Config:
@@ -44,10 +70,18 @@ def startup() -> Config:
     return asyncio.run(startup_async())
 
 
+async def shutdown_async():
+    """Async shutdown sequence."""
+    global _running
+    logger.info("Shutting down Primus backend...")
+    _running = False
+    await stop_messaging()
+    logger.info("Primus backend shutdown complete.")
+
+
 def shutdown() -> None:
     """
     Run the application shutdown sequence.
     """
-    logger.info("Shutting down Primus backend...")
-    # TODO: Clean up resources in future phases (close provider clients, etc.)
-    logger.info("Primus backend shutdown complete.")
+    asyncio.run(shutdown_async())
+

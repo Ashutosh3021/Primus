@@ -13,3 +13,13 @@
 {"timestamp": "2026-07-03T18:34:27.879049Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
 {"timestamp": "2026-07-03T18:34:28.461071Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
 {"timestamp": "2026-07-03T18:34:28.461454Z", "level": "INFO", "name": "errors.backend.api", "message": "Memory system initialized"}
+{"timestamp": "2026-07-03T18:40:02.471026Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-03T18:40:03.098988Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded environment variables from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-03T18:40:03.292504Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['web_search']"}
+{"timestamp": "2026-07-03T18:40:03.293354Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-03T18:40:03.302262Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-03T18:40:03.302738Z", "level": "INFO", "name": "errors.backend.api", "message": "Memory system initialized"}
+{"timestamp": "2026-07-03T18:40:03.302999Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-03T18:40:03.303205Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialized"}
+{"timestamp": "2026-07-03T18:40:04.515650Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Retrieved secret from .env: PROVIDER_OLLAMA_API_KEY"}
+{"timestamp": "2026-07-03T18:40:04.516565Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router initialized successfully"}
