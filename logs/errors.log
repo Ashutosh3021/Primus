@@ -1,0 +1,5 @@
+{"timestamp": "2026-07-03T18:13:01.293532Z", "level": "INFO", "name": "errors.backend.startup", "message": "Starting Primus backend..."}
+{"timestamp": "2026-07-03T18:13:01.294519Z", "level": "INFO", "name": "errors.backend.startup", "message": "Loading configuration..."}
+{"timestamp": "2026-07-03T18:13:01.295732Z", "level": "INFO", "name": "errors.backend.startup", "message": "Configuration loaded successfully. Version: 1"}
+{"timestamp": "2026-07-03T18:13:01.297063Z", "level": "INFO", "name": "errors.backend.startup", "message": "Primus backend startup complete."}
+{"timestamp": "2026-07-03T18:13:01.297369Z", "level": "INFO", "name": "errors.__main__", "message": "Foundation phase complete. Exiting..."}

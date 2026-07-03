@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "provider": {
+    "name": "ollama",
+    "secret_ref": "provider.ollama.api_key",
+    "model": "llama3.2"
+  },
+  "messaging": {
+    "telegram": {"enabled": false},
+    "discord": {"enabled": false}
+  },
+  "memory": {
+    "enabled": true,
+    "backend": "sqlite"
+  },
+  "tools": {
+    "web_search": false,
+    "browser": false,
+    "terminal": false
+  }
+}

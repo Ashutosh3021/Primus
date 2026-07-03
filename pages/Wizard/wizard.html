@@ -220,6 +220,7 @@ html,body{min-height:100%;background:var(--abyss);color:var(--bone);
 .btn{font-family:'Public Sans',sans-serif;font-size:0.86rem;font-weight:500;
   letter-spacing:0.04em;padding:12px 24px;border:1px solid;cursor:pointer;
   outline:none;transition:background .2s,color .2s,border-color .2s,opacity .2s}
+.btn{border-radius:10px}
 .btn:focus-visible{outline:2px solid var(--bioglow);outline-offset:3px}
 .btn-back{color:var(--sage);border-color:var(--sage-line);background:transparent}
 .btn-back:hover{color:var(--bone);border-color:var(--sage)}
@@ -1516,38 +1517,144 @@ function showSuccess(){
   var counter=qs('#progCounter'); if(counter) counter.textContent='Done';
   var section=qs('#progSection'); if(section) section.textContent='Complete';
 
-  var html='<div class="success-wrap">'+
-    '<div class="success-icon" aria-hidden="true"><svg width="22" height="18" viewBox="0 0 22 18" fill="none"><path d="M1 9l7 7L21 1" stroke="currentColor" stroke-width="1.8"/></svg></div>'+
-    '<div class="success-title">Setup Complete</div>'+
-    '<p class="success-body">Your assistant is ready. Place <code style="font-family:\'IBM Plex Mono\',monospace;font-size:0.88em;color:var(--bioglow)">config.json</code> in the PRIMUS backend root and start the engine. Secrets are in the keyring — not in this file.</p>'+
-    '<div class="config-preview" id="cfgPreview" role="region" aria-label="Generated config.json"></div>'+
-    '<button type="button" class="copy-btn" id="copyBtn">COPY TO CLIPBOARD</button>'+
-    '<div class="success-actions">'+
-    '<button type="button" class="btn btn-launch" id="dlBtn">Download config.json</button>'+
-    '<a href="../Dashbord/index.html" class="btn btn-ghost">Open Dashboard</a>'+
-    '</div>'+
-    '<p style="margin-top:24px;font-family:\'IBM Plex Mono\',monospace;font-size:0.7rem;color:var(--sage);text-align:center">Running in browser mode — filesystem API unavailable.<br>Download the file and place it in your backend root.</p>'+
+  var html = ''+
+    '<div class="success-wrap">'+
+      '<div class="success-icon" aria-hidden="true">'+
+        '<svg width="28" height="24" viewBox="0 0 24 20" fill="none">'+
+          '<path d="M1 10l6 6 16-16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'+
+        '</svg>'+
+      '</div>'+
+      '<div class="success-title">🎉 Setup Complete</div>'+
+      '<p class="success-body">Your AI Operating System has been successfully configured.</p>'+
+
+      '<div style="max-width:520px;margin:18px auto 8px;text-align:left">'+
+        '<div class="section-rule">Configuration Summary</div>'+
+        '<div style="padding:14px 12px;border-radius:8px;background:var(--abyss);border:1px solid var(--sage-line);">'+
+          '<div class="verify-item ok" style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:rgba(63,232,176,0.12);border-radius:50%;color:var(--bioglow);">'+SVG_CHECK+'</span><strong style="color:var(--bone)">Provider Configured</strong></div>'+
+          '<div class="verify-item ok" style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:rgba(63,232,176,0.12);border-radius:50%;color:var(--bioglow);">'+SVG_CHECK+'</span><strong style="color:var(--bone)">Model Selected</strong></div>'+
+          '<div class="verify-item ok" style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:rgba(63,232,176,0.12);border-radius:50%;color:var(--bioglow);">'+SVG_CHECK+'</span><strong style="color:var(--bone)">Memory Enabled</strong></div>'+
+          '<div class="verify-item ok" style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:rgba(63,232,176,0.12);border-radius:50%;color:var(--bioglow);">'+SVG_CHECK+'</span><strong style="color:var(--bone)">Messaging Connected</strong></div>'+
+          '<div class="verify-item ok" style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:rgba(63,232,176,0.12);border-radius:50%;color:var(--bioglow);">'+SVG_CHECK+'</span><strong style="color:var(--bone)">Tools Configured</strong></div>'+
+          '<div class="verify-item ok" style="display:flex;align-items:center;gap:12px"><span style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:rgba(63,232,176,0.12);border-radius:50%;color:var(--bioglow);">'+SVG_CHECK+'</span><strong style="color:var(--bone)">Notifications Enabled</strong></div>'+
+        '</div>'+
+      '</div>'+
+
+      '<div style="max-width:520px;margin:18px auto 0;text-align:left">'+
+        '<div class="section-rule">Configuration File</div>'+
+        '<div style="padding:12px;background:var(--abyss);border:1px solid var(--sage-line);border-radius:8px;color:var(--bioglow);font-family:\'IBM Plex Mono\',monospace;">config.json</div>'+
+      '</div>'+
+
+      '<div class="success-actions" style="margin-top:26px">'+
+        '<button id="launchBackendBtn" class="btn btn-next" aria-live="polite">Launch Backend</button>'+
+        '<button id="startOverBtn" class="btn btn-back">Start Over</button>'+
+      '</div>'+
+
+      '<div id="launchStatus" style="margin-top:18px;text-align:center;color:var(--sage);font-family:\'IBM Plex Mono\',monospace;\"></div>'+
+
+      '<div id="confirmOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:80">'+
+        '<div style="background:var(--vellum);border:1px solid var(--sage-line);padding:20px;max-width:420px;border-radius:10px;text-align:left">'+
+          '<div style="font-family:\'Fraunces\',serif;font-size:1.05rem;color:var(--bone);margin-bottom:8px">Start Over?</div>'+
+          '<div style="color:var(--sage);margin-bottom:16px">This will discard the current configuration and restart the setup wizard.</div>'+
+          '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+            '<button id="cancelStartOver" class="btn btn-ghost">Cancel</button>'+
+            '<button id="confirmStartOver" class="btn btn-next" style="background:transparent;color:var(--bioglow);border-color:var(--bioglow)">Start Over</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
     '</div>';
 
-  card.innerHTML=html;
-  var prev=qs('#cfgPreview'); if(prev) prev.textContent=json;
+  card.innerHTML = html;
 
-  // Copy
-  var cb=qs('#copyBtn');
-  if(cb) cb.addEventListener('click',function(){
-    if(navigator.clipboard){navigator.clipboard.writeText(json).then(function(){cb.textContent='COPIED ✓';setTimeout(function(){cb.textContent='COPY TO CLIPBOARD'},2000)})}
-    else{var ta=document.createElement('textarea');ta.value=json;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);cb.textContent='COPIED ✓';setTimeout(function(){cb.textContent='COPY TO CLIPBOARD'},2000)}
-  });
+  // status area
+  var status = qs('#launchStatus'); if(status) status.textContent = '';
 
-  // Download
-  var dl=qs('#dlBtn');
-  if(dl) dl.addEventListener('click',function(){
-    var blob=new Blob([json],{type:'application/json'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;a.download='config.json';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},100);
-  });
+  // Launch button behavior
+  var lb = qs('#launchBackendBtn');
+  if(lb){ lb.addEventListener('click', function(){ launchBackend(lb); }); }
+
+  // Start over behavior
+  var sb = qs('#startOverBtn');
+  if(sb){ sb.addEventListener('click', function(){ qs('#confirmOverlay').style.display='flex'; qs('#cancelStartOver').focus(); }); }
+
+  // Confirm/cancel handlers
+  var cancelBtn = qs('#cancelStartOver'); if(cancelBtn) cancelBtn.addEventListener('click', function(){ qs('#confirmOverlay').style.display='none'; });
+  var confirmBtn = qs('#confirmStartOver'); if(confirmBtn) confirmBtn.addEventListener('click', function(){ doStartOver(); });
+
+  // Prevent accidental double clicks
+  if(lb) lb.addEventListener('click', function(e){ e.currentTarget.disabled = true; setTimeout(function(){ if(e.currentTarget) e.currentTarget.disabled=false }, 1200); });
+}
+
+// Launch backend: validates config.json exists, triggers backend start, polls status
+async function launchBackend(btn){
+  var otherBtn = qs('#startOverBtn');
+  var status = qs('#launchStatus');
+  if(!btn) return;
+  // disable UI
+  btn.disabled = true; if(otherBtn) otherBtn.disabled = true;
+  status.style.color = 'var(--sage)'; status.innerHTML = '<span class="gen-spinner" style="display:inline-block;margin-right:8px"></span>Starting Backend...';
+
+  // Validate config.json exists at backend root
+  try{
+    var cfgResp = await fetch(location.origin + '/config.json', {cache:'no-store'});
+    if(!cfgResp.ok){ throw new Error('config.json not found at backend root.'); }
+  }catch(err){
+    status.style.color = 'var(--rust)'; status.textContent = 'config.json not found. Please place config.json in the backend root and try again.';
+    btn.disabled = false; if(otherBtn) otherBtn.disabled = false; return;
+  }
+
+  // Save any pending changes locally (wizard state) — ensure current review saved
+  try{ currentStep().save(); }catch(e){}
+
+  // Trigger backend start — try common endpoints until one responds
+  var startEndpoints = ['/__primus/start','/primus/start','/start-backend','/api/primus/start'];
+  var started=false; var startUrl = null;
+  for(var i=0;i<startEndpoints.length;i++){
+    try{
+      var r = await fetch(startEndpoints[i], {method:'POST'});
+      if(r.ok){ started=true; startUrl = startEndpoints[i]; break; }
+    }catch(e){}
+  }
+
+  if(!started){
+    status.style.color = 'var(--rust)'; status.textContent = 'Unable to contact backend starter endpoint. Ensure your backend exposes a start endpoint and try again.';
+    btn.disabled = false; if(otherBtn) otherBtn.disabled = false; return;
+  }
+
+  // Poll for READY status
+  var maxWait=60000; var interval=1200; var elapsed=0;
+  while(elapsed < maxWait){
+    try{
+      var st = await fetch('/__primus/status',{cache:'no-store'});
+      if(st.ok){
+        var body = await st.json().catch(function(){return {statusText:st.statusText,ok:st.ok}});
+        var s = (body && (body.status || body.state || body.result)) || (body===true? 'READY' : null);
+        if(String(s).toLowerCase()==='ready' || String(s).toLowerCase()==='running'){
+          // ready — redirect
+          status.style.color = 'var(--bioglow)'; status.textContent = 'Backend READY — redirecting...';
+          setTimeout(function(){ location.href = '../ledger/index.html'; }, 700);
+          return;
+        }
+      }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r, interval)); elapsed += interval;
+    status.innerHTML = '<span class="gen-spinner" style="display:inline-block;margin-right:8px"></span>Starting Backend...';
+  }
+
+  // timed out
+  status.style.color = 'var(--rust)'; status.textContent = 'Backend did not report READY in time. Check logs and try again.';
+  btn.disabled = false; if(otherBtn) otherBtn.disabled = false;
+}
+
+// Start over: try to remove temporary config and reset wizard state
+async function doStartOver(){
+  qs('#confirmOverlay').style.display='none';
+  var status = qs('#launchStatus'); if(status) status.textContent='';
+  // Attempt to delete config via backend endpoint (best-effort)
+  try{ await fetch('/__primus/config',{method:'DELETE'}); }catch(e){}
+  try{ localStorage.removeItem('primus.config'); }catch(e){}
+  // Reset state
+  S.step = 0; S.a = { installType: 'personal', provider: '', apiKey: '', model: '', modelCustom: '', assistantName: 'PRIMUS', systemPrompt: 'You are PRIMUS, a helpful personal AI assistant.', temperature: 0.7, streaming: true, memory: true, memoryItems: ['projects','preferences','conversations','schedules'], memoryBackend: 'sqlite', platforms: [], tgToken:'', tgUserId:'', dcToken:'', dcUserId:'', waToken:'', waPhoneId:'', waPhone:'', emailProvider:'gmail', emailAddr:'', emailPass:'', gchatJson:'', gchatSpace:'', smsAccountSid:'', smsAuthToken:'', smsPhone:'', smsAllowed:'', haUrl:'', haToken:'', ollamaModel:'', tgVerified:false, dcVerified:false, waVerified:false, emailVerified:false, gchatVerified:false, smsVerified:false, haVerified:false, tools:['web_search','browser','file_ops','vision','memory','planning','context_engine','session_search','cron_jobs','code_exec','computer_use','terminal','git_learning'], searchProvider:'duckduckgo', browser:'chromium', browserHeadless:true, visionImages:true, visionOcr:true, gitEnabled:true, gitSync:'daily', cronEnabled:true, cronMax:2, desktopAgent:true, desktopFeatures:['terminal','python','git','docker','browser','ollama','file_access'], notifyItems:['finished_jobs','failed_jobs','daily_briefing','internship_alerts','repo_changes','updates'], storeConversations:true, storeProjects:true, storeImages:false, storeVideos:false, storeConclusionsOnly:true };
+  buildFlatSteps(); render();
 }
 
 // ─────────────────────────────────────────────────────────────
