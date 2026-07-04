@@ -135,11 +135,23 @@ def initialize_messaging(config: Config) -> None:
     global _messaging_platforms
     _messaging_platforms = {}
 
+    logger.info(
+        f"[TG_INIT] initialize_messaging | "
+        f"platforms_in_registry={list(MESSAGING_PLATFORMS.keys())}"
+    )
+
     for name, cls in MESSAGING_PLATFORMS.items():
         platform_config: dict = dict(getattr(config.messaging, name, {}) or {})
 
+        logger.info(
+            f"[TG_INIT] Evaluating platform={name} | "
+            f"enabled={platform_config.get('enabled', False)} | "
+            f"has_secret_ref={'secret_ref' in platform_config}"
+        )
+
         if not platform_config.get("enabled", False):
             _registry.set_disabled(name)
+            logger.info(f"[TG_INIT] {name} → DISABLED (not enabled in config)")
             continue
 
         secret_ref: str | None = platform_config.get("secret_ref")
@@ -147,22 +159,31 @@ def initialize_messaging(config: Config) -> None:
             try:
                 token = get_secret(secret_ref)
                 platform_config["bot_token"] = token
+                logger.info(
+                    f"[TG_INIT] {name} — secret resolved | "
+                    f"secret_ref={secret_ref}"
+                )
             except SecretNotFoundError:
                 _registry.set_waiting(name, secret_ref)
                 logger.warning(
-                    f"[WARNING] {name.capitalize()} Messaging | "
-                    f"Waiting for configuration | Missing secret: {secret_ref}"
+                    f"[TG_INIT] {name} → WAITING_FOR_CONFIG | "
+                    f"Missing secret: {secret_ref}"
                 )
                 continue
             except Exception:
                 raise
+        else:
+            logger.info(
+                f"[TG_INIT] {name} — no secret_ref in config, "
+                "using bot_token directly from platform_config"
+            )
 
         try:
             platform = cls(platform_config)
             platform.set_message_handler(_handle_incoming_message)
             _messaging_platforms[name] = platform
             _registry.set_running(name)
-            logger.info(f"Initialised messaging platform: {name}")
+            logger.info(f"[TG_INIT] {name} → RUNNING (platform initialised)")
         except Exception:
             raise
 
@@ -196,17 +217,66 @@ def initialize_desktop(config: Config) -> None:
 # ── Internal message handler ──────────────────────────────────────────────────
 
 async def _handle_incoming_message(msg: IncomingMessage) -> str:
-    """Handle an incoming message from any platform."""
+    """
+    Bridge between any messaging platform and the AI router.
+
+    Instrumented with [TG_AI] / [TG_PROVIDER] tags so Render logs show
+    exactly which stage fails when processing a Telegram message.
+    """
+    logger.info(
+        f"[TG_AI] _handle_incoming_message | "
+        f"platform={msg.platform} | "
+        f"user_id={msg.user_id} | "
+        f"conversation_id={msg.conversation_id} | "
+        f"content_len={len(msg.content)} | "
+        f"content_preview={msg.content[:80]!r}"
+    )
+
     try:
+        # ── 1. Build context-enriched prompt ─────────────────────────────────
+        logger.info(
+            f"[TG_AI] Building prompt for user_id={msg.user_id} "
+            f"conversation_id={msg.conversation_id}"
+        )
         prompt = await build_prompt(msg.user_id, msg.conversation_id, msg.content)
+        logger.info(
+            f"[TG_AI] Prompt built | prompt_len={len(prompt)} | "
+            f"prompt_preview={prompt[:120]!r}"
+        )
+
+        # ── 2. Call AI router ─────────────────────────────────────────────────
+        router_state = _registry.get_state("router")
+        logger.info(
+            f"[TG_AI] Calling AI router | router_state={router_state}"
+        )
         messages = [Message(role="user", content=prompt)]
         completion = await chat(messages)
+        logger.info(
+            f"[TG_PROVIDER] AI router returned | "
+            f"provider={completion.provider} | "
+            f"model={completion.model} | "
+            f"finish_reason={completion.finish_reason} | "
+            f"reply_len={len(completion.content)} | "
+            f"reply_preview={completion.content[:120]!r}"
+        )
+
+        # ── 3. Persist interaction ────────────────────────────────────────────
+        logger.info(
+            f"[TG_AI] Persisting interaction for user_id={msg.user_id}"
+        )
         await add_interaction(
             msg.user_id, msg.conversation_id, msg.content, completion.content
         )
+        logger.info(f"[TG_AI] Interaction persisted — returning reply")
         return completion.content
+
     except Exception as exc:
-        logger.error(f"Error handling message: {exc}", exc_info=True)
+        logger.exception(
+            f"[TG_ERROR] _handle_incoming_message failed | "
+            f"platform={msg.platform} | "
+            f"user_id={msg.user_id} | "
+            f"error={exc}"
+        )
         return f"Sorry, something went wrong: {str(exc)}"
 
 
