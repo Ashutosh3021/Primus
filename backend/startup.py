@@ -1,3 +1,4 @@
+
 """
 Application startup sequence for Primus backend.
 """
@@ -13,52 +14,73 @@ from backend.api import (
 )
 from backend.db import init_db
 from backend.logger import get_errors_logger
+from backend.diagnostics import get_diagnostics_manager
+from backend.metrics import get_metrics_registry
+from backend.health import get_health_checker
+from backend.recovery import get_recovery_manager
 
 logger = get_errors_logger(__name__)
 _running = False
 
 
-async def startup_async() -> Config:
+async def startup_async() -&gt; Config:
     """Async startup sequence."""
     global _running
     logger.info("Starting Primus backend...")
 
-    # Load and validate config
-    logger.info("Loading configuration...")
-    config = load_config()
-    logger.info(f"Configuration loaded successfully. Version: {config.version}")
+    # Start diagnostics
+    diag = get_diagnostics_manager()
+    diag.start_diagnostics()
 
-    # Initialize database
-    logger.info("Initializing database...")
-    await init_db()
+    try:
+        # Load and validate config
+        logger.info("Loading configuration...")
+        config = load_config()
+        diag.mark_config_loaded()
+        logger.info(f"Configuration loaded successfully. Version: {config.version}")
 
-    # Initialize memory system
-    logger.info("Initializing memory system...")
-    initialize_memory()
+        # Initialize database
+        logger.info("Initializing database...")
+        await init_db()
+        diag.mark_db_initialized()
 
-    # Initialize tools
-    logger.info("Initializing tool system...")
-    initialize_tools(config)
+        # Initialize memory system
+        logger.info("Initializing memory system...")
+        initialize_memory()
+        diag.mark_memory_initialized()
 
-    # Initialize jobs
-    logger.info("Initializing job system...")
-    initialize_jobs(config)
+        # Initialize tools
+        logger.info("Initializing tool system...")
+        initialize_tools(config)
+        diag.mark_tools_initialized()
 
-    # Initialize AI router
-    logger.info("Initializing AI router...")
-    initialize_router(config)
+        # Initialize jobs
+        logger.info("Initializing job system...")
+        initialize_jobs(config)
+        diag.mark_jobs_initialized()
 
-    # Initialize messaging
-    logger.info("Initializing messaging...")
-    initialize_messaging(config)
+        # Initialize AI router
+        logger.info("Initializing AI router...")
+        initialize_router(config)
+        diag.mark_router_initialized()
 
-    # Initialize desktop
-    logger.info("Initializing desktop agent...")
-    initialize_desktop(config)
+        # Initialize messaging
+        logger.info("Initializing messaging...")
+        initialize_messaging(config)
+        diag.mark_messaging_initialized()
 
-    _running = True
-    logger.info("Primus backend startup complete.")
-    return config
+        # Initialize desktop
+        logger.info("Initializing desktop agent...")
+        initialize_desktop(config)
+        diag.mark_desktop_initialized()
+
+        _running = True
+        logger.info("Primus backend startup complete.")
+        return config
+    except Exception as e:
+        diag.add_error(str(e))
+        logger.error(f"Startup failed: {e}", exc_info=True)
+        raise
 
 
 async def run_forever(config: Config):
@@ -75,7 +97,7 @@ async def run_forever(config: Config):
         await asyncio.sleep(1)
 
 
-def startup() -> Config:
+def startup() -&gt; Config:
     """
     Run the application startup sequence (synchronous wrapper).
     """
@@ -93,7 +115,7 @@ async def shutdown_async():
     logger.info("Primus backend shutdown complete.")
 
 
-def shutdown() -> None:
+def shutdown() -&gt; None:
     """
     Run the application shutdown sequence.
     """

@@ -4,3 +4,4 @@ tenacity>=8.5.0
 keyring>=25.0.0
 python-dotenv>=1.0.0
 aiosqlite>=0.20.0
+psutil>=6.0.0

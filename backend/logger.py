@@ -1,13 +1,12 @@
+
 """
 Structured logging with redaction for Primus backend.
 """
-
 import json
 import logging
 import logging.handlers
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
 
 from backend.constants import (
     LOG_DIR,
@@ -18,10 +17,10 @@ from backend.constants import (
 
 
 # Keep track of resolved secrets to redact them
-_resolved_secrets: set[str] = set()
+_resolved_secrets = set()
 
 
-def register_secret(secret: str) -> None:
+def register_secret(secret):
     """
     Register a secret to be redacted in logs.
 
@@ -32,7 +31,7 @@ def register_secret(secret: str) -> None:
         _resolved_secrets.add(secret)
 
 
-def redact(value: Any) -> Any:
+def redact(value):
     """
     Redact any registered secrets from the value.
 
@@ -58,12 +57,12 @@ def redact(value: Any) -> Any:
 class JSONFormatter(logging.Formatter):
     """JSON formatter for structured logging."""
 
-    def format(self, record: logging.LogRecord) -> str:
+    def format(self, record):
         # Get timestamp with microseconds using datetime
         dt = datetime.fromtimestamp(record.created)
         timestamp = dt.strftime("%Y-%m-%dT%H:%M:%S.") + f"{dt.microsecond:06d}Z"
-        
-        log_data: Dict[str, Any] = {
+
+        log_data = {
             "timestamp": timestamp,
             "level": record.levelname,
             "name": record.name,
@@ -76,7 +75,7 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_data)
 
 
-def get_logger(name: str, stream: str = "errors") -> logging.Logger:
+def get_logger(name, stream="errors"):
     """
     Get a logger for a specific stream.
 
@@ -116,26 +115,47 @@ def get_logger(name: str, stream: str = "errors") -> logging.Logger:
     return logger
 
 
-def get_ai_requests_logger(name: str) -> logging.Logger:
+def get_ai_requests_logger(name):
     """Get logger for AI requests."""
     return get_logger(name, "ai_requests")
 
 
-def get_tool_calls_logger(name: str) -> logging.Logger:
+def get_tool_calls_logger(name):
     """Get logger for tool calls."""
     return get_logger(name, "tool_calls")
 
 
-def get_errors_logger(name: str) -> logging.Logger:
+def get_errors_logger(name):
     """Get logger for errors."""
     return get_logger(name, "errors")
 
 
-def get_jobs_logger(name: str) -> logging.Logger:
+def get_jobs_logger(name):
     """Get logger for jobs."""
     return get_logger(name, "jobs")
 
 
-def get_notifications_logger(name: str) -> logging.Logger:
+def get_notifications_logger(name):
     """Get logger for notifications."""
     return get_logger(name, "notifications")
+
+
+def get_metrics_logger(name):
+    """Get logger for metrics."""
+    return get_logger(name, "metrics")
+
+
+def get_health_logger(name):
+    """Get logger for health checks."""
+    return get_logger(name, "health")
+
+
+def get_diagnostics_logger(name):
+    """Get logger for diagnostics."""
+    return get_logger(name, "diagnostics")
+
+
+def get_recovery_logger(name):
+    """Get logger for recovery."""
+    return get_logger(name, "recovery")
+

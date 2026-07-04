@@ -72,3 +72,16 @@
 {"timestamp": "2026-07-04T11:55:37.094786Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
 {"timestamp": "2026-07-04T11:55:37.180499Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
 {"timestamp": "2026-07-04T11:55:37.371010Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T12:14:04.270134Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded environment variables from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-04T12:14:04.368929Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T12:14:04.399401Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-04T12:14:04.430258Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-04T12:14:04.430567Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-04T12:14:04.430781Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-04T12:14:04.430984Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-04T12:14:04.431213Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-04T12:14:04.431447Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-04T12:14:04.491382Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-04T12:14:04.492086Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Failure recorded for component test.component: Test failure 1"}
+{"timestamp": "2026-07-04T12:14:04.492763Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Circuit breaker opened for test.component"}
+{"timestamp": "2026-07-04T12:14:04.493284Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Failure recorded for component test.component: Test failure 2"}

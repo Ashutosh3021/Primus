@@ -21,6 +21,10 @@ LOG_STREAMS = [
     "errors",
     "jobs",
     "notifications",
+    "metrics",
+    "health",
+    "diagnostics",
+    "recovery",
 ]
 
 # Default log file size (10MB)
