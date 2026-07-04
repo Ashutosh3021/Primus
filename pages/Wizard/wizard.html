@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Centralised backend URL — all fetch() calls read CONFIG.BACKEND_URL from here -->
+<script src="../js/config.js"></script>
 <style>
 :root{
   --abyss:#0A1512; --vellum:#12211C; --vellum2:#16281F;
@@ -276,11 +278,9 @@ html,body{min-height:100%;background:var(--abyss);color:var(--bone);
 // ─────────────────────────────────────────────────────────────
 
 // ── Backend base URL ────────────────────────────────────────────────────────
-// Reads window.PRIMUS_API_URL or falls back to same origin.
-var API_BASE = (function(){
-  if(window.PRIMUS_API_URL) return window.PRIMUS_API_URL.replace(/\/$/,'');
-  return window.location.origin.replace(/\/$/,'');
-})();
+// Reads CONFIG.BACKEND_URL from pages/js/config.js (single source of truth).
+// No localhost or hardcoded URL may appear anywhere else.
+var API_BASE = (window.PRIMUS_CONFIG || CONFIG).BACKEND_URL.replace(/\/$/,'');
 
 // Save a secret by calling the backend /api/secrets/set endpoint.
 // Falls back to a console log if the backend is not yet reachable.
@@ -289,8 +289,11 @@ function saveSecret(ref, value) {
   fetch(API_BASE + '/api/secrets/set', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({secret_ref: ref, secret_value: value})
-  }).catch(function(){ console.log('[saveSecret fallback]', ref, '→ len:', value.length); });
+    body: JSON.stringify({secret_ref: ref, secret_value: value}),
+    signal: AbortSignal.timeout(8000)
+  }).catch(function(){
+    console.warn('[saveSecret] Backend unreachable — secret not persisted for ref:', ref);
+  });
 }
 
 // ── State ──
@@ -1621,7 +1624,10 @@ async function launchBackend(btn){
     });
   } catch(err) {
     status.style.color = 'var(--rust)';
-    status.textContent = 'Could not reach backend at ' + API_BASE + '. Start the server with: python main.py';
+    status.innerHTML =
+      '<strong>Could not reach the backend.</strong><br>' +
+      '<span style="font-size:0.8rem">URL: ' + API_BASE + '</span><br>' +
+      '<span style="font-size:0.8rem">Check that the Render service is running and BACKEND_URL in <code>pages/js/config.js</code> is correct.</span>';
     btn.disabled = false; if(otherBtn) otherBtn.disabled = false;
     return;
   }
@@ -1692,7 +1698,9 @@ async function launchBackend(btn){
   }
 
   status.style.color = 'var(--rust)';
-  status.textContent = 'Backend did not report READY in 60 s. Check logs: logs/errors.log';
+  status.innerHTML =
+    'Backend did not report READY within 60 s.<br>' +
+    '<span style="font-size:0.8rem">Check the Render service dashboard for startup errors.</span>';
   btn.disabled = false;
   if(otherBtn) otherBtn.disabled = false;
 }
@@ -1701,8 +1709,8 @@ async function launchBackend(btn){
 async function doStartOver(){
   qs('#confirmOverlay').style.display='none';
   var status = qs('#launchStatus'); if(status) status.textContent='';
-  // Attempt to delete config via backend endpoint (best-effort)
-  try{ await fetch('/__primus/config',{method:'DELETE'}); }catch(e){}
+  // Best-effort config reset via backend (silently fails if unreachable)
+  try{ await fetch(API_BASE + '/api/config',{method:'DELETE'}); }catch(e){}
   try{ localStorage.removeItem('primus.config'); }catch(e){}
   // Reset state
   S.step = 0; S.a = { installType: 'personal', provider: '', apiKey: '', model: '', modelCustom: '', assistantName: 'PRIMUS', systemPrompt: 'You are PRIMUS, a helpful personal AI assistant.', temperature: 0.7, streaming: true, memory: true, memoryItems: ['projects','preferences','conversations','schedules'], memoryBackend: 'sqlite', platforms: [], tgToken:'', tgUserId:'', dcToken:'', dcUserId:'', waToken:'', waPhoneId:'', waPhone:'', emailProvider:'gmail', emailAddr:'', emailPass:'', gchatJson:'', gchatSpace:'', smsAccountSid:'', smsAuthToken:'', smsPhone:'', smsAllowed:'', haUrl:'', haToken:'', ollamaModel:'', tgVerified:false, dcVerified:false, waVerified:false, emailVerified:false, gchatVerified:false, smsVerified:false, haVerified:false, tools:['web_search','browser','file_ops','vision','memory','planning','context_engine','session_search','cron_jobs','code_exec','computer_use','terminal','git_learning'], searchProvider:'duckduckgo', browser:'chromium', browserHeadless:true, visionImages:true, visionOcr:true, gitEnabled:true, gitSync:'daily', cronEnabled:true, cronMax:2, desktopAgent:true, desktopFeatures:['terminal','python','git','docker','browser','ollama','file_access'], notifyItems:['finished_jobs','failed_jobs','daily_briefing','internship_alerts','repo_changes','updates'], storeConversations:true, storeProjects:true, storeImages:false, storeVideos:false, storeConclusionsOnly:true };

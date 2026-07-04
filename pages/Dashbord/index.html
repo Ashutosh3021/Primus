@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Centralised backend URL — all fetch() calls read CONFIG.BACKEND_URL from here -->
+<script src="../js/config.js"></script>
 <style>
 
   :root{
@@ -596,6 +598,33 @@
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important; }
   }
 
+  /* ============ BACKEND HEALTH BADGE ============ */
+  #backendHealth{
+    position:fixed;
+    bottom:20px; right:20px;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    letter-spacing:0.1em;
+    color:var(--sage);
+    background:rgba(18,33,28,0.92);
+    border:1px solid var(--sage-line);
+    padding:7px 14px;
+    z-index:200;
+    pointer-events:none;
+    transition:opacity .4s ease;
+  }
+  #backendHealth.online  { color:var(--bioglow); border-color:rgba(63,232,176,0.3); }
+  #backendHealth.offline { color:var(--rust);    border-color:rgba(201,123,61,0.3); }
+  #healthDot{
+    width:7px; height:7px;
+    border-radius:50%;
+    background:currentColor;
+    flex-shrink:0;
+  }
+
 </style>
 </head>
 <body>
@@ -810,10 +839,47 @@
 
 </main>
 
+<!-- Backend health badge — silently checks GET /health every 30 s -->
+<div id="backendHealth" role="status" aria-live="polite" aria-label="Backend status">
+  <span id="healthDot"></span>
+  <span id="healthLabel">Checking…</span>
+</div>
+
 <script>
 (function(){
 
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- Backend Health Check (silent, non-blocking) ----------
+  var healthBadge = document.getElementById('backendHealth');
+  var healthLabel = document.getElementById('healthLabel');
+
+  function updateHealthBadge(online) {
+    healthBadge.className = online ? 'online' : 'offline';
+    healthLabel.textContent = online ? '🟢 Backend Online' : '🔴 Backend Offline';
+  }
+
+  function checkHealth() {
+    var url = (window.PRIMUS_CONFIG && window.PRIMUS_CONFIG.BACKEND_URL)
+      ? window.PRIMUS_CONFIG.BACKEND_URL + '/health'
+      : CONFIG.BACKEND_URL + '/health';
+    fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(5000)
+    })
+      .then(function(res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function(data) {
+        updateHealthBadge(data && data.startup_done !== false);
+      })
+      .catch(function() {
+        updateHealthBadge(false);
+      });
+  }
+
+  // Run immediately, then every 30 s
+  checkHealth();
+  setInterval(checkHealth, 30000);
 
   // ---------- Nav toggle ----------
   var navToggle = document.getElementById('navToggle');

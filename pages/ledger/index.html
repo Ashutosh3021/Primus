@@ -11,6 +11,8 @@
     rel="stylesheet"
   />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Centralised backend URL — all fetch() calls read CONFIG.BACKEND_URL from here -->
+  <script src="../js/config.js"></script>
   <style>
     * {
       margin: 0;
@@ -499,13 +501,9 @@
      */
 
     // ─── Backend base URL ───────────────────────────────────────────────────────
-    // Override via window.PRIMUS_API_URL or the meta tag if needed.
-    const API_BASE = (function () {
-      const meta = document.querySelector('meta[name="primus-api-url"]');
-      if (meta) return meta.content.replace(/\/$/, '');
-      if (window.PRIMUS_API_URL) return window.PRIMUS_API_URL.replace(/\/$/, '');
-      return window.location.origin.replace(/\/$/, '');
-    })();
+    // Reads CONFIG.BACKEND_URL from pages/js/config.js (single source of truth).
+    // No localhost or hardcoded URL may appear anywhere else.
+    const API_BASE = (window.PRIMUS_CONFIG || CONFIG).BACKEND_URL.replace(/\/$/, '');
 
     // ─── Colour palettes (kept from original design) ────────────────────────────
     const PROVIDER_COLORS = {
@@ -548,6 +546,21 @@
       }
     }
 
+    // ─── Offline banner ──────────────────────────────────────────────────────────
+    let _isOffline = false;
+
+    function setOfflineBanner(offline) {
+      if (_isOffline === offline) return;  // no change
+      _isOffline = offline;
+      let banner = document.getElementById('status-banner');
+      if (!banner) return;
+      if (offline) {
+        banner.innerHTML =
+          '<span style="color:#c97b3d">⚠ Backend Offline — data may be stale. Retrying automatically…</span>';
+      }
+      // Online state is handled by renderStatusBanner() when data arrives
+    }
+
     /** Pull fresh data from the backend and refresh every visible panel. */
     async function refreshFromBackend() {
       const [status, jobsData] = await Promise.all([
@@ -555,6 +568,13 @@
         apiFetch('/api/jobs?limit=500'),
       ]);
 
+      if (!status && !jobsData) {
+        setOfflineBanner(true);
+        // Keep stale data visible — do not clear charts
+        return;
+      }
+
+      setOfflineBanner(false);
       liveStatus = status;
       liveJobs   = jobsData ? jobsData.jobs || [] : [];
 
@@ -603,7 +623,7 @@
 
       if (!liveStatus) {
         banner.innerHTML =
-          '<span style="color:#c97b3d">⚠ Backend unreachable — showing cached data</span>';
+          '<span style="color:#c97b3d">⚠ Backend Offline — showing cached data. Retrying…</span>';
         return;
       }
 
@@ -1151,7 +1171,9 @@
       updateCharts();
       updateRecentCallsTable();
 
-      // Live backend refresh (first load + every 15 s)
+      // Live backend refresh — first load immediately, then every 15 s.
+      // If the backend is unreachable the banner shows "Backend Offline"
+      // and the page keeps the last known data. Recovery is automatic.
       refreshFromBackend();
       setInterval(refreshFromBackend, 15000);
     });
