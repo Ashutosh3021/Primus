@@ -45,13 +45,18 @@ _server_start_time: float = time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application lifespan: startup then yield, then shutdown."""
+    """
+    Manage application lifespan: startup → yield → shutdown.
+
+    Startup is designed to always succeed so the HTTP server can accept
+    traffic immediately.  Optional modules (router, messaging) that are
+    missing secrets enter WAITING_FOR_CONFIG state instead of raising.
+    Only genuine fatal errors (corrupt database, etc.) cause startup to fail.
+    """
     global _startup_done, _startup_error, _startup_progress
 
     from backend.startup import startup_async, shutdown_async
-    from backend.api import (
-        start_messaging, start_jobs, start_desktop
-    )
+    from backend.api import start_messaging, start_jobs, start_desktop
 
     steps = [
         "config", "database", "memory", "tools",
@@ -66,19 +71,28 @@ async def lifespan(app: FastAPI):
         for p in progress:
             if p["step"] == step:
                 p["status"] = "ok" if ok else "error"
-                p["detail"] = detail
+                if detail:
+                    p["detail"] = detail
                 break
 
     try:
-        mark("config", True)
         config = await startup_async()
-        mark("database", True)
-        mark("memory", True)
-        mark("tools", True)
-        mark("jobs", True)
-        mark("router", True)
-        mark("messaging", True)
-        mark("desktop", True)
+
+        # Reflect what startup_async actually completed
+        from backend.diagnostics import get_diagnostics_manager
+        sd = get_diagnostics_manager().get_startup_diagnostic()
+        if sd:
+            mark("config",    sd.config_loaded)
+            mark("database",  sd.db_initialized)
+            mark("memory",    sd.memory_initialized)
+            mark("tools",     sd.tools_initialized)
+            mark("jobs",      sd.jobs_initialized)
+            mark("router",    sd.router_initialized)
+            mark("messaging", sd.messaging_initialized)
+            mark("desktop",   sd.desktop_initialized)
+        else:
+            for step in steps:
+                mark(step, True)
 
         await start_messaging()
         await start_jobs()
@@ -92,10 +106,12 @@ async def lifespan(app: FastAPI):
         for p in progress:
             if p["status"] == "pending":
                 p["status"] = "skipped"
+        # Do NOT re-raise: let the server start so /health returns 200 and
+        # the Wizard can POST /api/config/apply to recover.
 
     yield
 
-    # Shutdown
+    # ── Shutdown ──────────────────────────────────────────────────────────────
     try:
         from backend.startup import shutdown_async
         await shutdown_async()
@@ -176,13 +192,23 @@ def _uptime_seconds() -> float:
 async def health() -> Dict[str, Any]:
     """
     Lightweight health check used by Render and load balancers.
-    Always returns 200 if the process is alive.
+    Always returns HTTP 200 while the process is alive.
+
+    Overall status is HEALTHY even when optional modules are waiting for
+    configuration — only critical infrastructure failures degrade it.
+    Module-level states are exposed under the 'modules' key.
     """
-    from backend.api import get_health_status
+    from backend.api import get_health_status, get_module_states
+
     try:
         result = get_health_status()
     except Exception:
         result = {"status": "unknown", "checks": []}
+
+    try:
+        modules = get_module_states()
+    except Exception:
+        modules = {}
 
     return {
         "status": result.get("status", "unknown"),
@@ -190,6 +216,7 @@ async def health() -> Dict[str, Any]:
         "startup_error": _startup_error,
         "uptime_seconds": _uptime_seconds(),
         "version": VERSION,
+        "modules": modules,
     }
 
 
@@ -289,6 +316,14 @@ async def api_status() -> Dict[str, Any]:
                 "errors": getattr(sd, "errors", []),
             }
 
+    # Module lifecycle states from registry
+    module_states: Dict[str, str] = {}
+    try:
+        from backend.api import get_module_states
+        module_states = get_module_states()
+    except Exception:
+        pass
+
     return {
         "startup_done": _startup_done,
         "startup_error": _startup_error,
@@ -303,6 +338,7 @@ async def api_status() -> Dict[str, Any]:
         "tools_enabled": tools_enabled,
         "scheduler_status": scheduler_status,
         "desktop_status": desktop_status,
+        "modules": module_states,
         "health": health_data,
         "metrics": metrics_data,
     }
@@ -397,6 +433,7 @@ async def apply_config(payload: ConfigSubmitRequest) -> Dict[str, Any]:
         from backend.api import (
             initialize_router, initialize_memory, initialize_tools,
             initialize_messaging, initialize_jobs, initialize_desktop,
+            get_module_states,
         )
         cfg = load_config()
 
@@ -411,12 +448,16 @@ async def apply_config(payload: ConfigSubmitRequest) -> Dict[str, Any]:
             try:
                 fn(*args)
                 progress.append({"step": name, "status": "ok"})
-            except SecretNotFoundError as exc:
-                progress.append({"step": name, "status": "error", "detail": str(exc)})
-                errors.append(f"{name}: {exc}")
             except Exception as exc:
                 progress.append({"step": name, "status": "error", "detail": str(exc)})
                 errors.append(f"{name}: {exc}")
+
+        # Attach per-module lifecycle states so the Wizard can show them
+        module_states = get_module_states()
+        for p in progress:
+            state = module_states.get(p["step"])
+            if state:
+                p["module_state"] = state
 
         global _startup_done
         _startup_done = True
