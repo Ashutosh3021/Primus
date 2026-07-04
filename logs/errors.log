@@ -23,3 +23,20 @@
 {"timestamp": "2026-07-03T18:40:03.303205Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialized"}
 {"timestamp": "2026-07-03T18:40:04.515650Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Retrieved secret from .env: PROVIDER_OLLAMA_API_KEY"}
 {"timestamp": "2026-07-03T18:40:04.516565Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router initialized successfully"}
+{"timestamp": "2026-07-04T11:43:02.734198Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded environment variables from c:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-04T11:43:02.771755Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T11:43:02.837875Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-04T11:43:43.581881Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded environment variables from c:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-04T11:43:43.622164Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T11:43:43.650664Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-04T11:43:43.746066Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at c:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-04T11:43:44.438634Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-04T11:43:44.439113Z", "level": "INFO", "name": "errors.backend.api", "message": "Memory system initialized"}
+{"timestamp": "2026-07-04T11:43:44.439459Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-04T11:43:44.439756Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialized"}
+{"timestamp": "2026-07-04T11:43:44.440038Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialized"}
+{"timestamp": "2026-07-04T11:43:44.536391Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Submitted job: c8525717-6af3-4361-a38f-852b48996d49 (daily_briefing"}
+{"timestamp": "2026-07-04T11:43:44.536920Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Job manager started"}
+{"timestamp": "2026-07-04T11:43:44.537201Z", "level": "INFO", "name": "errors.backend.context_engine", "message": "Scheduler started"}
+{"timestamp": "2026-07-04T11:43:44.635588Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Running daily briefing job"}
+{"timestamp": "2026-07-04T11:43:44.635903Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Job completed: c8525717-6af3-4361-a38f-852b48996d49"}

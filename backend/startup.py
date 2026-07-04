@@ -7,7 +7,8 @@ import signal
 from backend.config import Config, load_config
 from backend.api import (
     initialize_router, initialize_memory, initialize_tools,
-    initialize_messaging, start_messaging, stop_messaging
+    initialize_messaging, initialize_jobs,
+    start_messaging, stop_messaging, start_jobs, stop_jobs
 )
 from backend.db import init_db
 from backend.logger import get_errors_logger
@@ -38,6 +39,10 @@ async def startup_async() -> Config:
     logger.info("Initializing tool system...")
     initialize_tools(config)
 
+    # Initialize jobs
+    logger.info("Initializing job system...")
+    initialize_jobs(config)
+
     # Initialize AI router
     logger.info("Initializing AI router...")
     initialize_router(config)
@@ -55,8 +60,9 @@ async def run_forever(config: Config):
     """Run forever, handling signals."""
     global _running
 
-    # Start messaging
+    # Start messaging and jobs
     await start_messaging()
+    await start_jobs()
 
     # Wait until shutdown
     while _running:
@@ -76,6 +82,7 @@ async def shutdown_async():
     logger.info("Shutting down Primus backend...")
     _running = False
     await stop_messaging()
+    await stop_jobs()
     logger.info("Primus backend shutdown complete.")
 
 
