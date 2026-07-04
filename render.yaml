@@ -1,0 +1,70 @@
+services:
+  - type: web
+    name: primus-backend
+    runtime: python
+    region: oregon
+    plan: free
+
+    # Build
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+
+    # Start — Render injects $PORT automatically
+    startCommand: python main.py
+
+    # Health check used by Render to confirm the service is live
+    healthCheckPath: /health
+
+    # Persistent disk so primus.db and secrets survive redeploys
+    disk:
+      name: primus-data
+      mountPath: /opt/render/project/src
+      sizeGB: 1
+
+    envVars:
+      # ── Required ──────────────────────────────────────────────────────────────
+      # PORT is provided automatically by Render; do NOT set it here.
+
+      # Primus reads HOST/PORT from environment in main.py
+      - key: HOST
+        value: "0.0.0.0"
+
+      # ── Secrets (set via Render dashboard, never commit values) ──────────────
+      # Each key below corresponds to a secret_ref used in config.json.
+      # Format: PROVIDER_<NAME>_API_KEY maps to secret_ref "provider.<name>.api_key"
+
+      - key: PROVIDER_OPENAI_API_KEY
+        sync: false           # managed in Render dashboard
+
+      - key: PROVIDER_OPENROUTER_API_KEY
+        sync: false
+
+      - key: PROVIDER_ANTHROPIC_API_KEY
+        sync: false
+
+      - key: PROVIDER_GROQ_API_KEY
+        sync: false
+
+      - key: PROVIDER_MOONSHOT_API_KEY
+        sync: false
+
+      - key: PROVIDER_GLM_API_KEY
+        sync: false
+
+      - key: PROVIDER_GEMINI_API_KEY
+        sync: false
+
+      - key: PROVIDER_OLLAMA_API_KEY
+        value: "not-required"   # Ollama does not need a key
+
+      - key: MESSAGING_TELEGRAM_BOT_TOKEN
+        sync: false
+
+      - key: MESSAGING_DISCORD_BOT_TOKEN
+        sync: false
+
+      # ── Optional tuning ───────────────────────────────────────────────────────
+      - key: LOG_LEVEL
+        value: "info"
+
+      - key: PRIMUS_RELOAD
+        value: "false"

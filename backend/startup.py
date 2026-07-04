@@ -23,7 +23,7 @@ logger = get_errors_logger(__name__)
 _running = False
 
 
-async def startup_async() -&gt; Config:
+async def startup_async() -> Config:
     """Async startup sequence."""
     global _running
     logger.info("Starting Primus backend...")
@@ -97,7 +97,7 @@ async def run_forever(config: Config):
         await asyncio.sleep(1)
 
 
-def startup() -&gt; Config:
+def startup() -> Config:
     """
     Run the application startup sequence (synchronous wrapper).
     """
@@ -115,7 +115,7 @@ async def shutdown_async():
     logger.info("Primus backend shutdown complete.")
 
 
-def shutdown() -&gt; None:
+def shutdown() -> None:
     """
     Run the application shutdown sequence.
     """

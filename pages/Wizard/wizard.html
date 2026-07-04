@@ -275,9 +275,22 @@ html,body{min-height:100%;background:var(--abyss);color:var(--bone);
 //  Secrets: never written to config.json; routed through saveSecret()
 // ─────────────────────────────────────────────────────────────
 
-// TODO: wire to real secrets module (OS keyring / .env)
+// ── Backend base URL ────────────────────────────────────────────────────────
+// Reads window.PRIMUS_API_URL or falls back to same origin.
+var API_BASE = (function(){
+  if(window.PRIMUS_API_URL) return window.PRIMUS_API_URL.replace(/\/$/,'');
+  return window.location.origin.replace(/\/$/,'');
+})();
+
+// Save a secret by calling the backend /api/secrets/set endpoint.
+// Falls back to a console log if the backend is not yet reachable.
 function saveSecret(ref, value) {
-  console.log('[saveSecret]', ref, '→ len:', value ? value.length : 0);
+  if(!value) return;
+  fetch(API_BASE + '/api/secrets/set', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({secret_ref: ref, secret_value: value})
+  }).catch(function(){ console.log('[saveSecret fallback]', ref, '→ len:', value.length); });
 }
 
 // ── State ──
@@ -1584,65 +1597,104 @@ function showSuccess(){
   if(lb) lb.addEventListener('click', function(e){ e.currentTarget.disabled = true; setTimeout(function(){ if(e.currentTarget) e.currentTarget.disabled=false }, 1200); });
 }
 
-// Launch backend: validates config.json exists, triggers backend start, polls status
+// Launch backend: POST config to /api/config/apply, then poll /health until READY.
 async function launchBackend(btn){
   var otherBtn = qs('#startOverBtn');
-  var status = qs('#launchStatus');
+  var status   = qs('#launchStatus');
   if(!btn) return;
-  // disable UI
-  btn.disabled = true; if(otherBtn) otherBtn.disabled = true;
-  status.style.color = 'var(--sage)'; status.innerHTML = '<span class="gen-spinner" style="display:inline-block;margin-right:8px"></span>Starting Backend...';
 
-  // Validate config.json exists at backend root
-  try{
-    var cfgResp = await fetch(location.origin + '/config.json', {cache:'no-store'});
-    if(!cfgResp.ok){ throw new Error('config.json not found at backend root.'); }
-  }catch(err){
-    status.style.color = 'var(--rust)'; status.textContent = 'config.json not found. Please place config.json in the backend root and try again.';
-    btn.disabled = false; if(otherBtn) otherBtn.disabled = false; return;
+  btn.disabled = true;
+  if(otherBtn) otherBtn.disabled = true;
+  status.style.color = 'var(--sage)';
+  status.innerHTML = '<span class="gen-spinner" style="display:inline-block;margin-right:8px"></span>Sending configuration to backend…';
+
+  var cfg = buildConfig();
+
+  // 1. POST config to backend
+  var applyResp = null;
+  try {
+    applyResp = await fetch(API_BASE + '/api/config/apply', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({config: cfg}),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch(err) {
+    status.style.color = 'var(--rust)';
+    status.textContent = 'Could not reach backend at ' + API_BASE + '. Start the server with: python main.py';
+    btn.disabled = false; if(otherBtn) otherBtn.disabled = false;
+    return;
   }
 
-  // Save any pending changes locally (wizard state) — ensure current review saved
-  try{ currentStep().save(); }catch(e){}
-
-  // Trigger backend start — try common endpoints until one responds
-  var startEndpoints = ['/__primus/start','/primus/start','/start-backend','/api/primus/start'];
-  var started=false; var startUrl = null;
-  for(var i=0;i<startEndpoints.length;i++){
-    try{
-      var r = await fetch(startEndpoints[i], {method:'POST'});
-      if(r.ok){ started=true; startUrl = startEndpoints[i]; break; }
-    }catch(e){}
+  if(!applyResp.ok) {
+    var body = null;
+    try { body = await applyResp.json(); } catch(_) {}
+    var detail = (body && (body.detail || (body.errors && body.errors[0]))) || applyResp.statusText;
+    status.style.color = 'var(--rust)';
+    status.textContent = 'Backend rejected config: ' + detail;
+    btn.disabled = false; if(otherBtn) otherBtn.disabled = false;
+    return;
   }
 
-  if(!started){
-    status.style.color = 'var(--rust)'; status.textContent = 'Unable to contact backend starter endpoint. Ensure your backend exposes a start endpoint and try again.';
-    btn.disabled = false; if(otherBtn) otherBtn.disabled = false; return;
+  var applyBody = null;
+  try { applyBody = await applyResp.json(); } catch(_) {}
+  if(applyBody && !applyBody.success) {
+    var errs = (applyBody.errors || []).join('; ') || 'Unknown error';
+    status.style.color = 'var(--rust)';
+    status.textContent = 'Initialisation errors: ' + errs;
+    btn.disabled = false; if(otherBtn) otherBtn.disabled = false;
+    return;
   }
 
-  // Poll for READY status
-  var maxWait=60000; var interval=1200; var elapsed=0;
-  while(elapsed < maxWait){
-    try{
-      var st = await fetch('/__primus/status',{cache:'no-store'});
-      if(st.ok){
-        var body = await st.json().catch(function(){return {statusText:st.statusText,ok:st.ok}});
-        var s = (body && (body.status || body.state || body.result)) || (body===true? 'READY' : null);
-        if(String(s).toLowerCase()==='ready' || String(s).toLowerCase()==='running'){
-          // ready — redirect
-          status.style.color = 'var(--bioglow)'; status.textContent = 'Backend READY — redirecting...';
+  // 2. Render init progress
+  if(applyBody && applyBody.progress && applyBody.progress.length) {
+    var progressHtml = applyBody.progress.map(function(p){
+      var icon = p.status === 'ok'
+        ? '<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#3fe8b0" stroke-width="1.5"/></svg>'
+        : '<span style="color:#c97b3d">!</span>';
+      return '<div style="display:flex;gap:8px;align-items:center;color:' + (p.status==='ok'?'var(--bioglow)':'#c97b3d') + '">' + icon + ' ' + p.step + (p.detail ? ' — ' + p.detail : '') + '</div>';
+    }).join('');
+    status.innerHTML = '<div style="text-align:left">' + progressHtml + '</div>';
+  } else {
+    status.innerHTML = '<span class="gen-spinner" style="display:inline-block;margin-right:8px"></span>Polling health…';
+  }
+
+  // 3. Poll /health until startup_done
+  var maxWait = 60000;
+  var interval = 1500;
+  var elapsed  = 0;
+
+  while(elapsed < maxWait) {
+    await new Promise(function(r){ setTimeout(r, interval); });
+    elapsed += interval;
+    try {
+      var hResp = await fetch(API_BASE + '/health', {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(4000),
+      });
+      if(hResp.ok) {
+        var hBody = await hResp.json();
+        if(hBody && hBody.startup_done) {
+          status.style.color = 'var(--bioglow)';
+          status.textContent = '✓ Backend READY — redirecting to Ledger…';
           setTimeout(function(){ location.href = '../ledger/index.html'; }, 700);
           return;
         }
+        if(hBody && hBody.startup_error) {
+          status.style.color = 'var(--rust)';
+          status.textContent = 'Backend startup failed: ' + hBody.startup_error;
+          btn.disabled = false; if(otherBtn) otherBtn.disabled = false;
+          return;
+        }
       }
-    }catch(e){}
-    await new Promise(r=>setTimeout(r, interval)); elapsed += interval;
-    status.innerHTML = '<span class="gen-spinner" style="display:inline-block;margin-right:8px"></span>Starting Backend...';
+    } catch(_) {}
+    status.innerHTML = '<span class="gen-spinner" style="display:inline-block;margin-right:8px"></span>Waiting for backend… (' + Math.round(elapsed/1000) + 's)';
   }
 
-  // timed out
-  status.style.color = 'var(--rust)'; status.textContent = 'Backend did not report READY in time. Check logs and try again.';
-  btn.disabled = false; if(otherBtn) otherBtn.disabled = false;
+  status.style.color = 'var(--rust)';
+  status.textContent = 'Backend did not report READY in 60 s. Check logs: logs/errors.log';
+  btn.disabled = false;
+  if(otherBtn) otherBtn.disabled = false;
 }
 
 // Start over: try to remove temporary config and reset wizard state

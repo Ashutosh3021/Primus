@@ -494,103 +494,148 @@
   <script>
     /**
      * The Ledger — PRIMUS Usage Dashboard
-     * Pure vanilla JS implementation with Chart.js
+     * Connects to the live Primus backend for status and job data.
+     * Falls back to an empty dataset when the backend is unreachable.
      */
 
-    // ============================================================================
-    // DATA & MOCKS
-    // ============================================================================
+    // ─── Backend base URL ───────────────────────────────────────────────────────
+    // Override via window.PRIMUS_API_URL or the meta tag if needed.
+    const API_BASE = (function () {
+      const meta = document.querySelector('meta[name="primus-api-url"]');
+      if (meta) return meta.content.replace(/\/$/, '');
+      if (window.PRIMUS_API_URL) return window.PRIMUS_API_URL.replace(/\/$/, '');
+      return window.location.origin.replace(/\/$/, '');
+    })();
 
-    /**
-     * @typedef {Object} CallRecord
-     * @property {string} id
-     * @property {string} timestamp - ISO 8601
-     * @property {"anthropic"|"openrouter"|"ollama"|"groq"} provider
-     * @property {string} model
-     * @property {string|undefined} tool - undefined if direct chat call
-     * @property {number} inputTokens
-     * @property {number} outputTokens
-     * @property {number} costUsd
-     * @property {number} latencyMs
-     * @property {"success"|"failure"} status
-     */
-
-    const PROVIDERS = ['anthropic', 'openrouter', 'ollama', 'groq'];
-    const MODELS = {
-      anthropic: ['claude-3-sonnet', 'claude-3-opus', 'claude-3-haiku'],
-      openrouter: ['meta-llama/llama-2-70b', 'mistralai/mistral-7b'],
-      ollama: ['llama2', 'mistral', 'neural-chat'],
-      groq: ['mixtral-8x7b-32768', 'llama2-70b-4096']
-    };
-    const TOOLS = ['Web Search', 'Memory', 'File Operations', 'Browser', 'Code Execution', 'Calculator'];
-
+    // ─── Colour palettes (kept from original design) ────────────────────────────
     const PROVIDER_COLORS = {
-      anthropic: '#3fe8b0',   // bioglow
-      openrouter: '#c97b3d',  // rust-amber
-      ollama: '#8fa69a',      // sage
-      groq: '#6fa8dc'         // subtle-blue
+      anthropic:  '#3fe8b0',
+      openrouter: '#c97b3d',
+      ollama:     '#8fa69a',
+      groq:       '#6fa8dc',
+      openai:     '#74b9ff',
+      gemini:     '#fdcb6e',
+      moonshot:   '#a29bfe',
+      glm:        '#fd79a8',
     };
 
     const TOOL_COLORS = {
-      'Web Search': '#3fe8b0',
-      'Memory': '#c97b3d',
+      'Web Search':      '#3fe8b0',
+      'Memory':          '#c97b3d',
       'File Operations': '#8fa69a',
-      'Browser': '#6fa8dc',
-      'Code Execution': '#3fa699',
-      'Calculator': '#b8956a'
+      'Browser':         '#6fa8dc',
+      'Code Execution':  '#3fa699',
+      'Calculator':      '#b8956a',
+      'terminal':        '#74b9ff',
+      'git':             '#a29bfe',
     };
 
-    /**
-     * Generate mock call records spanning the last 30 days
-     */
-    function generateMockCalls(count = 500) {
-      const calls = [];
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    // ─── Live backend state ──────────────────────────────────────────────────────
+    let liveStatus = null;   // /api/status response
+    let liveJobs   = [];     // /api/jobs response
 
-      for (let i = 0; i < count; i++) {
-        const randomTime = new Date(
-          thirtyDaysAgo.getTime() + Math.random() * (now.getTime() - thirtyDaysAgo.getTime())
-        );
-        const provider = PROVIDERS[Math.floor(Math.random() * PROVIDERS.length)];
-        const model = MODELS[provider][Math.floor(Math.random() * MODELS[provider].length)];
-        const isSuccess = Math.random() > 0.03; // ~97% success rate
-        const tool = Math.random() > 0.3 ? TOOLS[Math.floor(Math.random() * TOOLS.length)] : undefined;
-
-        // Realistic cost based on provider
-        let costMultiplier = 1;
-        if (provider === 'anthropic') costMultiplier = 0.003;
-        if (provider === 'openrouter') costMultiplier = 0.0015;
-        if (provider === 'ollama') costMultiplier = 0;
-        if (provider === 'groq') costMultiplier = 0.0001;
-
-        const inputTokens = Math.floor(Math.random() * 2000) + 100;
-        const outputTokens = Math.floor(Math.random() * 1500) + 50;
-        const costUsd = (inputTokens + outputTokens * 1.5) * costMultiplier;
-
-        calls.push({
-          id: `call-${i}`,
-          timestamp: randomTime.toISOString(),
-          provider,
-          model,
-          tool,
-          inputTokens,
-          outputTokens,
-          costUsd: Math.round(costUsd * 10000) / 10000,
-          latencyMs: Math.floor(Math.random() * 2500) + 100,
-          status: isSuccess ? 'success' : 'failure'
+    /** Fetch JSON from the backend, returning null on any error. */
+    async function apiFetch(path) {
+      try {
+        const res = await fetch(API_BASE + path, {
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(5000),
         });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch (_) {
+        return null;
       }
-
-      return calls.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     }
 
-    // ============================================================================
-    // STATE & FILTERING
-    // ============================================================================
+    /** Pull fresh data from the backend and refresh every visible panel. */
+    async function refreshFromBackend() {
+      const [status, jobsData] = await Promise.all([
+        apiFetch('/api/status'),
+        apiFetch('/api/jobs?limit=500'),
+      ]);
 
-    let allCalls = generateMockCalls(500);
-    let filteredCalls = [...allCalls];
+      liveStatus = status;
+      liveJobs   = jobsData ? jobsData.jobs || [] : [];
+
+      renderStatusBanner();
+      renderJobsAsCallRecords();
+    }
+
+    // ─── Convert jobs → call-record shape for the existing table/chart engine ───
+    function jobsToCallRecords(jobs) {
+      return jobs.map(j => ({
+        id:          j.job_id,
+        timestamp:   j.created_at || new Date().toISOString(),
+        provider:    liveStatus ? liveStatus.provider : 'unknown',
+        model:       liveStatus ? liveStatus.model    : 'unknown',
+        tool:        j.name || undefined,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd:     0,
+        latencyMs:   j.started_at && j.completed_at
+          ? new Date(j.completed_at) - new Date(j.started_at)
+          : 0,
+        status: j.status === 'completed' ? 'success' : 'failure',
+      }));
+    }
+
+    function renderJobsAsCallRecords() {
+      allCalls      = jobsToCallRecords(liveJobs);
+      filteredCalls = filterCallsByTimeRange(currentTimeRange);
+      updateSummaryCards();
+      updateCharts();
+      updateRecentCallsTable();
+    }
+
+    /** Render (or update) the live-status banner above the header. */
+    function renderStatusBanner() {
+      let banner = document.getElementById('status-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'status-banner';
+        banner.style.cssText =
+          'font-family:var(--font-mono);font-size:0.8rem;padding:10px 2rem;' +
+          'display:flex;gap:2rem;flex-wrap:wrap;border-bottom:1px solid rgba(143,166,154,0.2);' +
+          'background:var(--vellum);color:var(--sage);';
+        document.body.insertBefore(banner, document.body.firstChild);
+      }
+
+      if (!liveStatus) {
+        banner.innerHTML =
+          '<span style="color:#c97b3d">⚠ Backend unreachable — showing cached data</span>';
+        return;
+      }
+
+      const uptime = Math.round(liveStatus.uptime_seconds || 0);
+      const h = Math.floor(uptime / 3600);
+      const m = Math.floor((uptime % 3600) / 60);
+      const uptimeStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+
+      const healthColor = liveStatus.health && liveStatus.health.status === 'healthy'
+        ? 'var(--bioglow)' : '#c97b3d';
+
+      const startupOk  = liveStatus.startup_done;
+      const statusDot  = startupOk
+        ? `<span style="color:var(--bioglow)">● READY</span>`
+        : `<span style="color:#c97b3d">● STARTING</span>`;
+
+      banner.innerHTML = [
+        statusDot,
+        `Provider: <span style="color:var(--bone)">${liveStatus.provider || '—'}</span>`,
+        `Model: <span style="color:var(--bone)">${liveStatus.model || '—'}</span>`,
+        `Memory: <span style="color:var(--bone)">${liveStatus.memory_status || '—'}</span>`,
+        `Scheduler: <span style="color:var(--bone)">${liveStatus.scheduler_status || '—'}</span>`,
+        `Desktop: <span style="color:var(--bone)">${liveStatus.desktop_status || '—'}</span>`,
+        `Health: <span style="color:${healthColor}">${liveStatus.health ? liveStatus.health.status : '—'}</span>`,
+        `Uptime: <span style="color:var(--bone)">${uptimeStr}</span>`,
+        `v${liveStatus.version || '1'}`,
+      ].join(' &nbsp;|&nbsp; ');
+    }
+
+    // ─── STATE & FILTERING (unchanged logic, replaces mock bootstrap) ───────────
+    let allCalls      = [];
+    let filteredCalls = [];
     let currentTimeRange = 'today';
     let currentPage = 1;
     const ROWS_PER_PAGE = 25;
@@ -1069,19 +1114,13 @@
       document.querySelectorAll('th.sortable').forEach(th => {
         th.addEventListener('click', () => {
           const field = th.dataset.sort;
-
-          // Remove sort indicators from all headers
           document.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-
-          // Toggle direction or set new field
           if (currentSort.field === field) {
             currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
           } else {
             currentSort.field = field;
             currentSort.direction = 'desc';
           }
-
-          // Add indicator to current header
           th.classList.add(`sort-${currentSort.direction}`);
           currentPage = 1;
           updateRecentCallsTable();
@@ -1107,10 +1146,14 @@
         }
       });
 
-      // Initial render
+      // Initial backend fetch + empty-state render
       updateSummaryCards();
       updateCharts();
       updateRecentCallsTable();
+
+      // Live backend refresh (first load + every 15 s)
+      refreshFromBackend();
+      setInterval(refreshFromBackend, 15000);
     });
   </script>
 </body>

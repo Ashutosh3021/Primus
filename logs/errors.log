@@ -85,3 +85,25 @@
 {"timestamp": "2026-07-04T12:14:04.492086Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Failure recorded for component test.component: Test failure 1"}
 {"timestamp": "2026-07-04T12:14:04.492763Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Circuit breaker opened for test.component"}
 {"timestamp": "2026-07-04T12:14:04.493284Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Failure recorded for component test.component: Test failure 2"}
+{"timestamp": "2026-07-04T12:53:36.511988Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded environment variables from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-04T12:53:36.966508Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-04T12:53:36.993880Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T12:53:36.993880Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-04T12:53:36.993880Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-04T12:53:36.993880Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-04T12:53:36.998330Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-04T12:53:36.998330Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-04T12:53:36.998330Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-04T12:53:38.529015Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-04T12:53:38.568672Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-04T12:54:46.108237Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded environment variables from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-04T12:54:46.406068Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-04T12:54:46.421969Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T12:54:46.425189Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-04T12:54:46.425189Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-04T12:54:46.427002Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-04T12:54:46.427576Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-04T12:54:46.428643Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-04T12:54:46.430087Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-04T12:54:47.358526Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-04T12:54:47.369115Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}

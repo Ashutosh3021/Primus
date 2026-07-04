@@ -1,40 +1,42 @@
 #!/usr/bin/env python3
 """
-Primus backend entry point.
+Primus entry point.
+
+Starts the FastAPI HTTP server. The server lifespan handler runs the full
+backend startup sequence (config → db → memory → tools → jobs → router →
+messaging → desktop) before accepting traffic.
+
+Port and host are resolved from environment variables so that Render (and any
+other PaaS) can inject them at runtime.
 """
 
-import asyncio
+import os
 import sys
-from typing import Any
 
-from backend.helpers import setup_signal_handlers
+import uvicorn
+
 from backend.logger import get_errors_logger
-from backend.startup import startup_async, run_forever, shutdown_async
 
 logger = get_errors_logger(__name__)
 
 
-async def main():
-    """Main entry point."""
-    try:
-        # Run startup
-        config = await startup_async()
+def main() -> None:
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    reload = os.getenv("PRIMUS_RELOAD", "false").lower() == "true"
+    log_level = os.getenv("LOG_LEVEL", "info").lower()
 
-        # Set up shutdown signals
-        def signal_handler(signum: int, frame: Any) -> None:
-            logger.info(f"Received signal {signum}, shutting down...")
-            asyncio.create_task(shutdown_async())
+    logger.info(f"Starting Primus on {host}:{port}")
 
-        setup_signal_handlers(signal_handler)
-
-        # Run forever
-        await run_forever(config)
-
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        await shutdown_async()
-        sys.exit(1)
+    uvicorn.run(
+        "backend.server:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level=log_level,
+        access_log=True,
+    )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
