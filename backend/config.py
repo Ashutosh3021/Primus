@@ -51,6 +51,14 @@ class ToolsConfig:
 
 
 @dataclass
+class DesktopConfig:
+    """Desktop agent configuration."""
+
+    enabled: bool
+    allowed_paths: list
+
+
+@dataclass
 class Config:
     """Full Primus configuration."""
 
@@ -59,6 +67,7 @@ class Config:
     messaging: MessagingConfig
     memory: MemoryConfig
     tools: ToolsConfig
+    desktop: DesktopConfig
 
 
 def load_config(config_path: Path = CONFIG_PATH) -> Config:
@@ -116,10 +125,16 @@ def load_config(config_path: Path = CONFIG_PATH) -> Config:
         terminal=data["tools"].get("terminal", False),
     )
 
+    desktop = DesktopConfig(
+        enabled=data.get("desktop", {}).get("enabled", True),
+        allowed_paths=data.get("desktop", {}).get("allowed_paths", ["."])
+    )
+
     return Config(
         version=config_version,
         provider=provider,
         messaging=messaging,
         memory=memory,
         tools=tools,
+        desktop=desktop,
     )

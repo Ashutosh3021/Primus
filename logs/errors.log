@@ -40,3 +40,35 @@
 {"timestamp": "2026-07-04T11:43:44.537201Z", "level": "INFO", "name": "errors.backend.context_engine", "message": "Scheduler started"}
 {"timestamp": "2026-07-04T11:43:44.635588Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Running daily briefing job"}
 {"timestamp": "2026-07-04T11:43:44.635903Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Job completed: c8525717-6af3-4361-a38f-852b48996d49"}
+{"timestamp": "2026-07-04T11:50:57.915118Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T11:50:59.646902Z", "level": "INFO", "name": "errors.backend.desktop", "message": "Detected capabilities: DesktopCapabilities(os='Windows', python_version='3.13.5', has_terminal=True, has_filesystem=True, has_git=True, has_ollama=False, has_docker=False, online=True)"}
+{"timestamp": "2026-07-04T11:51:51.938811Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T11:51:53.481925Z", "level": "INFO", "name": "errors.backend.desktop", "message": "Detected capabilities: DesktopCapabilities(os='Windows', python_version='3.13.5', has_terminal=True, has_filesystem=True, has_git=True, has_ollama=False, has_docker=False, online=True)"}
+{"timestamp": "2026-07-04T11:51:53.482511Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-04T11:53:34.704994Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T11:55:08.149851Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T11:55:08.166153Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-04T11:55:08.166519Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-04T11:55:08.166745Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-04T11:55:08.167004Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-04T11:55:08.167298Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-04T11:55:08.167535Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-04T11:55:08.847041Z", "level": "INFO", "name": "errors.backend.desktop", "message": "Detected capabilities: DesktopCapabilities(os='Windows', python_version='3.13.5', has_terminal=True, has_filesystem=True, has_git=True, has_ollama=False, has_docker=False, online=True)"}
+{"timestamp": "2026-07-04T11:55:08.847557Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T11:55:09.043592Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T11:55:09.044694Z", "level": "ERROR", "name": "errors.backend.desktop.tools", "message": "Filesystem tool error: [WinError 3] The system cannot find the path specified: ''", "exc_info": "Traceback (most recent call last):\n  File \"C:\\Users\\ashut\\Downloads\\Primus\\backend\\desktop\\tools.py\", line 84, in execute\n    os.makedirs(os.path.dirname(path), exist_ok=True)\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen os>\", line 228, in makedirs\nFileNotFoundError: [WinError 3] The system cannot find the path specified: ''"}
+{"timestamp": "2026-07-04T11:55:09.049351Z", "level": "ERROR", "name": "errors.backend.desktop.tools", "message": "Filesystem tool error: [Errno 2] No such file or directory: 'test_phase6_temp.txt'", "exc_info": "Traceback (most recent call last):\n  File \"C:\\Users\\ashut\\Downloads\\Primus\\backend\\desktop\\tools.py\", line 74, in execute\n    with open(path, \"r\", encoding=\"utf-8\") as f:\n         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'test_phase6_temp.txt'"}
+{"timestamp": "2026-07-04T11:55:09.053790Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T11:55:09.226616Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T11:55:36.161714Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-04T11:55:36.186441Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-04T11:55:36.186822Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-04T11:55:36.187153Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-04T11:55:36.187511Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-04T11:55:36.187758Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-04T11:55:36.187995Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-04T11:55:36.893768Z", "level": "INFO", "name": "errors.backend.desktop", "message": "Detected capabilities: DesktopCapabilities(os='Windows', python_version='3.13.5', has_terminal=True, has_filesystem=True, has_git=True, has_ollama=False, has_docker=False, online=True)"}
+{"timestamp": "2026-07-04T11:55:36.894232Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T11:55:37.094786Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T11:55:37.180499Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-04T11:55:37.371010Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
