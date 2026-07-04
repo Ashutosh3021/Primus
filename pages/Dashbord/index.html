@@ -7,8 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- Centralised backend URL — all fetch() calls read CONFIG.BACKEND_URL from here -->
-<script src="../js/config.js"></script>
+<!-- ⚙ BACKEND URL — change this one line before every deploy -->
+<script>
+var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com" };
+window.PRIMUS_CONFIG = CONFIG;
+</script>
 <style>
 
   :root{

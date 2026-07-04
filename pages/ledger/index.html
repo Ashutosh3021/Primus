@@ -11,8 +11,11 @@
     rel="stylesheet"
   />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Centralised backend URL — all fetch() calls read CONFIG.BACKEND_URL from here -->
-  <script src="../js/config.js"></script>
+  <!-- ⚙ BACKEND URL — change this one line before every deploy -->
+  <script>
+  var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com" };
+  window.PRIMUS_CONFIG = CONFIG;
+  </script>
   <style>
     * {
       margin: 0;
