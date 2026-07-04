@@ -17,7 +17,7 @@ var CONFIG = {
    *
    * Example: "https://primus-backend.onrender.com"
    */
-  BACKEND_URL: "https://primus-backend.onrender.com"
+  BACKEND_URL: "https://primus-lyq1.onrender.com"
 };
 
 // Safety-net: catch accidental relative-URL usage in other scripts.
