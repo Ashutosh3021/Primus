@@ -1492,6 +1492,57 @@ function buildConfig(){
   // Tools
   TOOLS_LIST.forEach(function(t){ cfg.tools[t.k] = a.tools.indexOf(t.k)!==-1; });
 
+  // ── Wizard state snapshot (used by Restore) ──────────────────────────────
+  // Store the full wizard answer object so Restore can repopulate every field
+  // exactly. Secrets are deliberately excluded — they live in the keyring.
+  cfg._wizard_state = {
+    installType:      a.installType,
+    provider:         a.provider,
+    model:            a.model,
+    modelCustom:      a.modelCustom,
+    ollamaModel:      a.ollamaModel,
+    assistantName:    a.assistantName,
+    systemPrompt:     a.systemPrompt,
+    temperature:      a.temperature,
+    streaming:        a.streaming,
+    memory:           a.memory,
+    memoryItems:      a.memoryItems,
+    memoryBackend:    a.memoryBackend,
+    platforms:        a.platforms,
+    // per-platform non-secret fields
+    tgUserId:         a.tgUserId,
+    dcUserId:         a.dcUserId,
+    waPhoneId:        a.waPhoneId,
+    waPhone:          a.waPhone,
+    emailProvider:    a.emailProvider,
+    emailAddr:        a.emailAddr,
+    gchatSpace:       a.gchatSpace,
+    smsAccountSid:    a.smsAccountSid,
+    smsPhone:         a.smsPhone,
+    smsAllowed:       a.smsAllowed,
+    haUrl:            a.haUrl,
+    tools:            a.tools,
+    searchProvider:   a.searchProvider,
+    browser:          a.browser,
+    browserHeadless:  a.browserHeadless,
+    visionImages:     a.visionImages,
+    visionOcr:        a.visionOcr,
+    gitEnabled:       a.gitEnabled,
+    gitSync:          a.gitSync,
+    cronEnabled:      a.cronEnabled,
+    cronMax:          a.cronMax,
+    desktopAgent:     a.desktopAgent,
+    desktopFeatures:  a.desktopFeatures,
+    notifyItems:      a.notifyItems,
+    storeConversations:   a.storeConversations,
+    storeProjects:        a.storeProjects,
+    storeImages:          a.storeImages,
+    storeVideos:          a.storeVideos,
+    storeConclusionsOnly: a.storeConclusionsOnly
+    // NOTE: apiKey, tgToken, dcToken, waToken, emailPass, gchatJson,
+    //       smsAuthToken, haToken are intentionally omitted — secrets only.
+  };
+
   return cfg;
 }
 
@@ -1767,13 +1818,29 @@ var PROVIDER_NAME_MAP = {
 };
 
 function _applyRestoredConfig(data) {
+  // ── Fast path: full wizard state snapshot present ─────────────────────────
+  // When the config was saved by this Wizard version, _wizard_state contains
+  // every field exactly as the user entered it. Apply it directly.
+  if(data._wizard_state) {
+    var ws = data._wizard_state;
+    var keys = Object.keys(ws);
+    for(var i=0;i<keys.length;i++){
+      var k = keys[i];
+      if(S.a.hasOwnProperty(k)) S.a[k] = ws[k];
+    }
+    // Provider key is never in _wizard_state. Check stored status separately.
+    return;
+  }
+
+  // ── Legacy / minimal config fallback ─────────────────────────────────────
+  // For configs written before _wizard_state existed, infer as much as we can.
+
   // ── Provider ──────────────────────────────────────────────────────────────
   if(data.provider) {
     var pv = data.provider;
     var mappedProvider = PROVIDER_NAME_MAP[pv.name] || pv.name;
     S.a.provider = mappedProvider;
     S.a.model    = pv.model || '';
-    // secret_ref stays server-side; API key is NOT returned by /api/config
   }
 
   // ── Assistant behaviour ───────────────────────────────────────────────────
@@ -1824,10 +1891,8 @@ function _applyRestoredConfig(data) {
   if(data.messaging) {
     var platforms = [];
     var mg = data.messaging;
-
     if(mg.telegram && mg.telegram.enabled) {
       platforms.push('telegram');
-      // Restore allowed_users as a comma-separated user ID string
       if(Array.isArray(mg.telegram.allowed_users) && mg.telegram.allowed_users.length)
         S.a.tgUserId = mg.telegram.allowed_users.join(',');
     }
@@ -1866,7 +1931,6 @@ function _applyRestoredConfig(data) {
     S.a.desktopAgent = data.desktop_agent.enabled !== false;
     if(Array.isArray(data.desktop_agent.features)) S.a.desktopFeatures = data.desktop_agent.features;
   } else if(data.desktop) {
-    // Backwards-compat with older config shape
     S.a.desktopAgent = data.desktop.enabled !== false;
   }
 

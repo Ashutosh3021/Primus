@@ -33,7 +33,11 @@ def validate_provider_config(provider_config: Dict[str, Any]) -> None:
     Raises:
         ValidationError: If validation fails
     """
-    validate_required_fields(provider_config, ["name", "secret_ref", "model"])
+    validate_required_fields(provider_config, ["name", "model"])
+    # secret_ref is required for all cloud providers; Ollama runs locally
+    # and uses the env-var placeholder "not-required" set in render.yaml.
+    if provider_config.get("name") != "ollama":
+        validate_required_fields(provider_config, ["secret_ref"])
 
 
 def validate_messaging_config(messaging_config: Dict[str, Any]) -> None:

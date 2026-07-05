@@ -494,14 +494,28 @@ async def apply_config(payload: ConfigSubmitRequest) -> Dict[str, Any]:
 
 @app.get("/api/config", tags=["config"])
 async def get_config() -> Dict[str, Any]:
-    """Return the current config.json (secrets are never returned)."""
+    """
+    Return the current config.json including the _wizard_state snapshot.
+
+    Secret values are never stored in config.json (they go to the keyring),
+    so no stripping is required beyond removing any accidentally persisted
+    api_key field in the provider block.
+    """
     if not CONFIG_PATH.exists():
         raise HTTPException(status_code=404, detail="config.json not found")
     with open(CONFIG_PATH, "r", encoding="utf-8") as fh:
         data = json.load(fh)
-    # Strip any accidental secret values from the response
-    if "provider" in data and "secret_ref" in data["provider"]:
+    # Strip any accidental secret value that should be in the keyring only
+    if "provider" in data:
         data["provider"].pop("api_key", None)
+    # Scrub any secret-looking keys from _wizard_state as a safety belt
+    _SECRET_KEYS = {
+        "apiKey", "tgToken", "dcToken", "waToken",
+        "emailPass", "gchatJson", "smsAuthToken", "haToken",
+    }
+    if "_wizard_state" in data and isinstance(data["_wizard_state"], dict):
+        for k in _SECRET_KEYS:
+            data["_wizard_state"].pop(k, None)
     return data
 
 
