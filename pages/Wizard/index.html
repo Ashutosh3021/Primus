@@ -646,10 +646,26 @@ function makeTelegramStep(){return {id:'setup_telegram',section:'Messaging · Te
     h+=guideStep('04','Choose a unique username ending in <code>bot</code>','Example: <code>primus_ai_bot</code>');
     h+=guideStep('05','BotFather replies with a token like <code>123456789:AABBcc…</code>','Copy it and paste below.');
     h+='</div>';
-    h+='<div class="field-wrap"><div class="field-label">Bot Token</div>'+
-      '<div class="inp-wrap"><input id="tgTokenInp" type="password" class="inp" placeholder="123456789:ABCdef…" autocomplete="off" value="'+esc(S.a.tgToken)+'">'+
-      '<button type="button" class="showhide" id="tgSH">SHOW</button></div></div>';
-    h+='<div class="errmsg" id="tgTokErr" style="display:none"></div>';
+
+    // If token already stored (from a restore), show keep/replace options
+    if(S.a.tgToken === '__stored__') {
+      h += '<div class="okmsg" style="margin-bottom:12px">Bot Token Already Stored</div>';
+      h += radio('tg_token_action', [
+        {v:'keep',    l:'Keep Existing', d:'Use the token already stored in the backend.'},
+        {v:'replace', l:'Replace',       d:'Enter a new token.'}
+      ], 'keep');
+      h += '<div id="tgTokenReplaceWrap" style="margin-top:10px;display:none">';
+      h += '<div class="field-wrap"><div class="field-label">New Bot Token</div>'+
+        '<div class="inp-wrap"><input id="tgTokenInp" type="password" class="inp" placeholder="123456789:ABCdef…" autocomplete="off">'+
+        '<button type="button" class="showhide" id="tgSH">SHOW</button></div></div>';
+      h += '</div>';
+    } else {
+      h+='<div class="field-wrap"><div class="field-label">Bot Token</div>'+
+        '<div class="inp-wrap"><input id="tgTokenInp" type="password" class="inp" placeholder="123456789:ABCdef…" autocomplete="off" value="'+esc(S.a.tgToken)+'">'+
+        '<button type="button" class="showhide" id="tgSH">SHOW</button></div></div>';
+      h+='<div class="errmsg" id="tgTokErr" style="display:none"></div>';
+    }
+
     h+='<div class="section-rule" style="margin-top:20px">Find Your Telegram User ID</div>';
     h+=guideInline('Open Telegram and search <a class="guide-link" href="https://t.me/userinfotg2bot" target="_blank" rel="noopener">@userinfotg2bot</a>. Press START — the bot replies with your User ID number. Paste it below.');
     h+='<div class="field-wrap" style="margin-top:12px"><div class="field-label">User ID</div>'+
@@ -660,10 +676,26 @@ function makeTelegramStep(){return {id:'setup_telegram',section:'Messaging · Te
     else h+='<div class="verify-result" id="tgVerRes"></div>';
     return h;
   },
-  validate:function(){return S.a.tgVerified||(S.a.tgToken.length>=10&&S.a.tgUserId.length>=5)},
+  validate:function(){
+    // Stored token + existing userId → valid without re-entry
+    if(S.a.tgToken === '__stored__' && S.a.tgUserId.length >= 5) return true;
+    return S.a.tgVerified||(S.a.tgToken.length>=10&&S.a.tgUserId.length>=5);
+  },
   save:function(){
-    var t=qs('#tgTokenInp'),u=qs('#tgUidInp');
-    if(t)S.a.tgToken=t.value.trim();if(u)S.a.tgUserId=u.value.trim();
+    // Handle the keep/replace radio for stored tokens
+    var act = qs('input[name=tg_token_action]:checked');
+    if(act) {
+      if(act.value === 'replace') {
+        var newTok = qs('#tgTokenInp'); if(newTok && newTok.value.trim()) S.a.tgToken = newTok.value.trim();
+        // If user clicked replace but left it blank, keep existing stored marker
+      }
+      // 'keep' → leave S.a.tgToken as '__stored__' so saveSecret() is skipped
+    } else {
+      var t=qs('#tgTokenInp'),u=qs('#tgUidInp');
+      if(t)S.a.tgToken=t.value.trim();
+    }
+    var u=qs('#tgUidInp');
+    if(u)S.a.tgUserId=u.value.trim();
   }
 }}
 
@@ -1249,6 +1281,9 @@ function attachEvents(){
         var ow=qs('#ollamaCustomWrap'); if(ow) ow.style.display=inp.value==='__custom__'?'block':'none';
       }
       if(name==='emailProv'){ S.a.emailProvider=inp.value; }
+      if(name==='tg_token_action'){
+        var rw=qs('#tgTokenReplaceWrap'); if(rw) rw.style.display=inp.value==='replace'?'block':'none';
+      }
       updateNextBtn();
     });
     item.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); item.click(); } });
@@ -1561,15 +1596,16 @@ function doLaunch(){
   }
 
   // Write secrets to stub (never into config)
+  // Skip any token that is '__stored__' — it is already in the backend keyring/.env
   var a=S.a;
-  if(a.provider!=='ollama'&&a.apiKey) saveSecret('provider.'+a.provider+'.api_key',a.apiKey);
-  if(a.platforms.indexOf('telegram')!==-1&&a.tgToken) saveSecret('messaging.telegram.bot_token',a.tgToken);
-  if(a.platforms.indexOf('discord') !==-1&&a.dcToken) saveSecret('messaging.discord.bot_token',a.dcToken);
-  if(a.platforms.indexOf('whatsapp')!==-1&&a.waToken) saveSecret('messaging.whatsapp.access_token',a.waToken);
-  if(a.platforms.indexOf('email')   !==-1&&a.emailPass) saveSecret('messaging.email.app_password',a.emailPass);
-  if(a.platforms.indexOf('gchat')   !==-1&&a.gchatJson) saveSecret('messaging.gchat.credentials_json',a.gchatJson);
-  if(a.platforms.indexOf('sms')     !==-1&&a.smsAuthToken) saveSecret('messaging.sms.auth_token',a.smsAuthToken);
-  if(a.platforms.indexOf('ha')      !==-1&&a.haToken) saveSecret('messaging.ha.token',a.haToken);
+  if(a.provider!=='ollama'&&a.apiKey&&a.apiKey!=='__stored__') saveSecret('provider.'+a.provider+'.api_key',a.apiKey);
+  if(a.platforms.indexOf('telegram')!==-1&&a.tgToken&&a.tgToken!=='__stored__') saveSecret('messaging.telegram.bot_token',a.tgToken);
+  if(a.platforms.indexOf('discord') !==-1&&a.dcToken&&a.dcToken!=='__stored__') saveSecret('messaging.discord.bot_token',a.dcToken);
+  if(a.platforms.indexOf('whatsapp')!==-1&&a.waToken&&a.waToken!=='__stored__') saveSecret('messaging.whatsapp.access_token',a.waToken);
+  if(a.platforms.indexOf('email')   !==-1&&a.emailPass&&a.emailPass!=='__stored__') saveSecret('messaging.email.app_password',a.emailPass);
+  if(a.platforms.indexOf('gchat')   !==-1&&a.gchatJson&&a.gchatJson!=='__stored__') saveSecret('messaging.gchat.credentials_json',a.gchatJson);
+  if(a.platforms.indexOf('sms')     !==-1&&a.smsAuthToken&&a.smsAuthToken!=='__stored__') saveSecret('messaging.sms.auth_token',a.smsAuthToken);
+  if(a.platforms.indexOf('ha')      !==-1&&a.haToken&&a.haToken!=='__stored__') saveSecret('messaging.ha.token',a.haToken);
 
   showGenerating();
 }
@@ -1953,20 +1989,59 @@ function _applyRestoredConfig(data) {
 
 // Check whether the provider API key is already stored; if so, mark apiKey
 // as present so Step 2 shows "API Key Found" and not an empty password field.
+// Also checks every enabled messaging platform's secret_ref so that platform
+// setup steps show "Token Already Stored" and do not require re-entry.
 async function _checkRestoredSecrets(data) {
-  if(!data.provider || !data.provider.secret_ref || data.provider.name === 'ollama') return;
-  try {
-    var resp = await fetch(API_BASE + '/api/secrets/check/' + encodeURIComponent(data.provider.secret_ref), {
-      signal: AbortSignal.timeout(4000)
-    });
-    if(resp.ok) {
-      var body = await resp.json();
-      if(body.exists) {
-        // Mark that a key is present so the wizard shows "Keep / Replace / Clear"
-        S.a.apiKey = '__stored__';
+  // ── Provider API key ──────────────────────────────────────────────────────
+  if(data.provider && data.provider.secret_ref && data.provider.name !== 'ollama') {
+    try {
+      var resp = await fetch(API_BASE + '/api/secrets/check/' + encodeURIComponent(data.provider.secret_ref), {
+        signal: AbortSignal.timeout(4000)
+      });
+      if(resp.ok) {
+        var body = await resp.json();
+        if(body.exists) {
+          // Mark that a key is present so the wizard shows "Keep / Replace / Clear"
+          S.a.apiKey = '__stored__';
+        }
       }
-    }
-  } catch(_) {}
+    } catch(_) {}
+  }
+
+  // ── Messaging platform secrets ────────────────────────────────────────────
+  // For each enabled platform that has a secret_ref, check the backend.
+  // When a secret is already stored we set the corresponding token field to
+  // '__stored__' so the platform setup step can show "Token Already Stored"
+  // and the user is not forced to re-enter it.
+  var platformSecretMap = {
+    telegram: { field: 'tgToken',      ref: data.messaging && data.messaging.telegram && data.messaging.telegram.secret_ref },
+    discord:  { field: 'dcToken',      ref: data.messaging && data.messaging.discord  && data.messaging.discord.secret_ref  },
+    whatsapp: { field: 'waToken',      ref: data.messaging && data.messaging.whatsapp && data.messaging.whatsapp.secret_ref },
+    email:    { field: 'emailPass',    ref: data.messaging && data.messaging.email    && data.messaging.email.secret_ref    },
+    gchat:    { field: 'gchatJson',    ref: data.messaging && data.messaging.gchat    && data.messaging.gchat.secret_ref    },
+    sms:      { field: 'smsAuthToken', ref: data.messaging && data.messaging.sms      && data.messaging.sms.secret_ref      },
+    ha:       { field: 'haToken',      ref: data.messaging && data.messaging.ha       && data.messaging.ha.secret_ref       }
+  };
+
+  var checks = Object.keys(platformSecretMap).map(async function(platform) {
+    var entry = platformSecretMap[platform];
+    if(!entry.ref) return;
+    // Only check if platform is enabled in the saved config
+    if(!data.messaging || !data.messaging[platform] || !data.messaging[platform].enabled) return;
+    try {
+      var r = await fetch(API_BASE + '/api/secrets/check/' + encodeURIComponent(entry.ref), {
+        signal: AbortSignal.timeout(4000)
+      });
+      if(r.ok) {
+        var b = await r.json();
+        if(b.exists) {
+          S.a[entry.field] = '__stored__';
+        }
+      }
+    } catch(_) {}
+  });
+
+  await Promise.all(checks);
 }
 
 function _showRestoreBanner(data) {

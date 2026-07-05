@@ -86,8 +86,16 @@ def initialize_router(config: Config) -> None:
             f"[WARNING] AI Router | Waiting for configuration | "
             f"Missing secret: {config.provider.secret_ref}"
         )
-    except Exception:
-        raise
+    except Exception as exc:
+        # Any unexpected error (e.g. keyring I/O failure) is treated as a
+        # missing secret so a broken keyring cannot prevent startup.
+        _router = None
+        _registry.set_waiting("router", config.provider.secret_ref)
+        logger.error(
+            f"[WARNING] AI Router | Waiting for configuration | "
+            f"Unexpected error reading secret "
+            f"{config.provider.secret_ref!r}: {exc}"
+        )
 
 
 # ── Memory ───────────────────────────────────────────────────────────────────
@@ -170,8 +178,15 @@ def initialize_messaging(config: Config) -> None:
                     f"Missing secret: {secret_ref}"
                 )
                 continue
-            except Exception:
-                raise
+            except Exception as exc:
+                # Any other error (e.g. keyring I/O failure) is treated as a
+                # missing secret so one broken platform cannot block others.
+                _registry.set_waiting(name, secret_ref)
+                logger.error(
+                    f"[TG_INIT] {name} → WAITING_FOR_CONFIG | "
+                    f"Unexpected error reading secret {secret_ref!r}: {exc}"
+                )
+                continue
         else:
             logger.info(
                 f"[TG_INIT] {name} — no secret_ref in config, "
