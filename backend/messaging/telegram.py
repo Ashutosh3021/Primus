@@ -137,6 +137,8 @@ class TelegramMessaging(BaseMessaging):
                 f"[TG_PARSE] update_id={update_id} — message has no text "
                 "(may be a photo, sticker, or service message) — skipping"
             )
+            # Still advance the offset so this update is not re-fetched.
+            self._last_update_id = update_id
             return
 
         if not self.is_user_allowed(user_id):
@@ -144,6 +146,10 @@ class TelegramMessaging(BaseMessaging):
                 f"[TG_PARSE] update_id={update_id} — "
                 f"user_id={user_id} is NOT in allowed_users list — blocked"
             )
+            # Advance offset even for blocked users so this update is not
+            # re-fetched on the next getUpdates call. Without this, a single
+            # message from an unknown user stalls the polling loop forever.
+            self._last_update_id = update_id
             return
 
         self._last_update_id = update_id
@@ -246,6 +252,16 @@ class TelegramMessaging(BaseMessaging):
 
         logger.info("[TG_START] Spawning polling task…")
         self._poll_task = asyncio.create_task(self._poll())
+
+        # Log any unexpected task failure so it is visible in Render logs.
+        def _on_poll_done(task: asyncio.Task) -> None:
+            if not task.cancelled() and task.exception():
+                logger.error(
+                    f"[TG_ERROR] Polling task terminated unexpectedly: "
+                    f"{task.exception()!r}"
+                )
+
+        self._poll_task.add_done_callback(_on_poll_done)
         logger.info(
             f"[TG_START] Polling task created | task={self._poll_task!r}"
         )
@@ -276,7 +292,11 @@ class TelegramMessaging(BaseMessaging):
         params = {
             "chat_id": msg.conversation_id,
             "text": msg.content,
-            "parse_mode": "Markdown",
+            # No parse_mode — AI responses are free-form text and may contain
+            # characters that Telegram's Markdown parser rejects (underscores,
+            # asterisks, backticks, brackets).  Sending as plain text is always
+            # safe.  If rich formatting is needed in future, switch to
+            # parse_mode="MarkdownV2" with a proper escaping helper.
         }
         logger.info(
             f"[TG_REPLY] sendMessage request | "

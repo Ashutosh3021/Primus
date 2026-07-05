@@ -433,9 +433,20 @@ async def apply_config(payload: ConfigSubmitRequest) -> Dict[str, Any]:
         from backend.api import (
             initialize_router, initialize_memory, initialize_tools,
             initialize_messaging, initialize_jobs, initialize_desktop,
+            stop_messaging, start_messaging,
             get_module_states,
         )
         cfg = load_config()
+
+        # Stop any existing messaging polling loops before re-initialising.
+        # Without this, old Telegram tasks become zombies and the new ones
+        # never start because initialize_messaging() only creates instances —
+        # it does not call start() on them.
+        try:
+            await stop_messaging()
+            logger.info("apply_config: stopped existing messaging platforms before re-init")
+        except Exception as exc:
+            logger.warning(f"apply_config: stop_messaging warning (non-fatal): {exc}")
 
         for name, fn, args in [
             ("memory",    initialize_memory,    ()),
@@ -451,6 +462,15 @@ async def apply_config(payload: ConfigSubmitRequest) -> Dict[str, Any]:
             except Exception as exc:
                 progress.append({"step": name, "status": "error", "detail": str(exc)})
                 errors.append(f"{name}: {exc}")
+
+        # Start polling loops for newly initialised messaging platforms.
+        # This mirrors what the lifespan handler does at server startup.
+        try:
+            await start_messaging()
+            logger.info("apply_config: messaging platforms started after re-init")
+        except Exception as exc:
+            logger.error(f"apply_config: start_messaging failed: {exc}", exc_info=True)
+            errors.append(f"messaging start: {exc}")
 
         # Attach per-module lifecycle states so the Wizard can show them
         module_states = get_module_states()
@@ -492,6 +512,28 @@ async def set_secret_endpoint(payload: SecretSetRequest) -> Dict[str, Any]:
         from backend.secrets import set_secret
         set_secret(payload.secret_ref, payload.secret_value)
         return {"success": True}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
+
+
+@app.get("/api/secrets/check/{secret_ref:path}", tags=["secrets"])
+async def check_secret_endpoint(secret_ref: str) -> Dict[str, Any]:
+    """
+    Check whether a secret is stored — returns {exists: bool}.
+    The secret VALUE is never returned.
+
+    Used by the Wizard's Restore flow to determine whether an API key
+    is already present so it can show "Key stored — no need to re-enter."
+    """
+    try:
+        from backend.secrets import get_secret
+        get_secret(secret_ref)
+        return {"exists": True, "secret_ref": secret_ref}
+    except SecretNotFoundError:
+        return {"exists": False, "secret_ref": secret_ref}
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -7,10 +7,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- ⚙ BACKEND URL — change this one line before every deploy -->
+<!-- ⚙ Deployment URLs — loaded first so launchBackend() always finds LEDGER_URL.
+     config.js is the canonical source of truth; this block must stay in sync.
+     If config.js is loaded later it will overwrite window.PRIMUS_CONFIG, which
+     is fine because both files should carry the same values. -->
+<script src="../js/config.js"></script>
 <script>
-var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com" };
-window.PRIMUS_CONFIG = CONFIG;
+// Fallback: if config.js failed to load (e.g. running the file directly),
+// define minimal CONFIG so the page still works.
+if (typeof CONFIG === 'undefined') {
+  var CONFIG = {
+    BACKEND_URL: "https://primus-lyq1.onrender.com",
+    LEDGER_URL:  "https://primus-ledger.vercel.app"
+  };
+  window.PRIMUS_CONFIG = CONFIG;
+}
 </script>
 <style>
 :root{
@@ -1455,8 +1466,21 @@ function buildConfig(){
     var enabled = a.platforms.indexOf(p.k)!==-1;
     cfg.messaging[p.k] = {enabled: enabled};
     if(enabled){
-      if(p.k==='telegram')  cfg.messaging[p.k].secret_ref='messaging.telegram.bot_token';
-      if(p.k==='discord')   cfg.messaging[p.k].secret_ref='messaging.discord.bot_token';
+      if(p.k==='telegram'){
+        cfg.messaging[p.k].secret_ref='messaging.telegram.bot_token';
+        // allowed_users: split comma-separated string → array of trimmed IDs
+        if(a.tgUserId.trim()){
+          cfg.messaging[p.k].allowed_users = a.tgUserId.split(',')
+            .map(function(s){return s.trim();}).filter(Boolean);
+        }
+      }
+      if(p.k==='discord'){
+        cfg.messaging[p.k].secret_ref='messaging.discord.bot_token';
+        if(a.dcUserId.trim()){
+          cfg.messaging[p.k].allowed_users = a.dcUserId.split(',')
+            .map(function(s){return s.trim();}).filter(Boolean);
+        }
+      }
       if(p.k==='whatsapp')  cfg.messaging[p.k].secret_ref='messaging.whatsapp.access_token';
       if(p.k==='email'){    cfg.messaging[p.k].provider=a.emailProvider; cfg.messaging[p.k].secret_ref='messaging.email.app_password'; }
       if(p.k==='gchat')     cfg.messaging[p.k].secret_ref='messaging.gchat.credentials_json';
@@ -1686,7 +1710,13 @@ async function launchBackend(btn){
         if(hBody && hBody.startup_done) {
           status.style.color = 'var(--bioglow)';
           status.textContent = '✓ Backend READY — redirecting to Ledger…';
-          setTimeout(function(){ location.href = '../ledger/index.html'; }, 700);
+          // Use the configured LEDGER_URL from pages/js/config.js.
+          // Falls back to the relative path so local development still works.
+          var cfg = window.PRIMUS_CONFIG || CONFIG;
+          var ledgerUrl = (cfg.LEDGER_URL && cfg.LEDGER_URL.trim())
+            ? cfg.LEDGER_URL.replace(/\/$/, '')
+            : '../ledger/index.html';
+          setTimeout(function(){ location.href = ledgerUrl; }, 700);
           return;
         }
         if(hBody && hBody.startup_error) {
@@ -1721,10 +1751,237 @@ async function doStartOver(){
 }
 
 // ─────────────────────────────────────────────────────────────
+//  RESTORE PREVIOUS CONFIGURATION
+//
+//  On first render, if GET /api/config returns a valid saved config,
+//  a "Restore Previous Configuration" button is shown above the wizard card.
+//  Clicking it populates S.a from the saved config so the user can
+//  review/edit without retyping everything.
+// ─────────────────────────────────────────────────────────────
+
+// Map from config.json provider name → wizard provider key
+var PROVIDER_NAME_MAP = {
+  openrouter: 'openrouter', openai: 'openai', gemini: 'google',
+  google: 'google', anthropic: 'anthropic', moonshot: 'kimi',
+  kimi: 'kimi', glm: 'zai', zai: 'zai', groq: 'groq', ollama: 'ollama'
+};
+
+function _applyRestoredConfig(data) {
+  // ── Provider ──────────────────────────────────────────────────────────────
+  if(data.provider) {
+    var pv = data.provider;
+    var mappedProvider = PROVIDER_NAME_MAP[pv.name] || pv.name;
+    S.a.provider = mappedProvider;
+    S.a.model    = pv.model || '';
+    // secret_ref stays server-side; API key is NOT returned by /api/config
+  }
+
+  // ── Assistant behaviour ───────────────────────────────────────────────────
+  if(data.assistant) {
+    if(data.assistant.name)          S.a.assistantName  = data.assistant.name;
+    if(data.assistant.system_prompt) S.a.systemPrompt   = data.assistant.system_prompt;
+    if(data.assistant.temperature !== undefined) S.a.temperature = data.assistant.temperature;
+    if(data.assistant.streaming !== undefined)   S.a.streaming   = data.assistant.streaming;
+  }
+
+  // ── Memory ────────────────────────────────────────────────────────────────
+  if(data.memory) {
+    S.a.memory        = data.memory.enabled !== false;
+    S.a.memoryBackend = data.memory.backend || 'sqlite';
+    if(Array.isArray(data.memory.items)) S.a.memoryItems = data.memory.items;
+  }
+
+  // ── Tools ─────────────────────────────────────────────────────────────────
+  if(data.tools) {
+    var enabledTools = [];
+    Object.keys(data.tools).forEach(function(k){ if(data.tools[k]) enabledTools.push(k); });
+    if(enabledTools.length) S.a.tools = enabledTools;
+  }
+
+  // ── Tool config ───────────────────────────────────────────────────────────
+  if(data.tool_config) {
+    var tc = data.tool_config;
+    if(tc.web_search  && tc.web_search.provider)   S.a.searchProvider    = tc.web_search.provider;
+    if(tc.browser) {
+      if(tc.browser.engine !== undefined)           S.a.browser           = tc.browser.engine;
+      if(tc.browser.headless !== undefined)         S.a.browserHeadless   = tc.browser.headless;
+    }
+    if(tc.vision) {
+      if(tc.vision.images !== undefined)            S.a.visionImages      = tc.vision.images;
+      if(tc.vision.ocr !== undefined)               S.a.visionOcr         = tc.vision.ocr;
+    }
+    if(tc.git_learning) {
+      if(tc.git_learning.enabled !== undefined)     S.a.gitEnabled        = tc.git_learning.enabled;
+      if(tc.git_learning.sync)                      S.a.gitSync           = tc.git_learning.sync;
+    }
+    if(tc.scheduling) {
+      if(tc.scheduling.enabled !== undefined)       S.a.cronEnabled       = tc.scheduling.enabled;
+      if(tc.scheduling.max_concurrent !== undefined)S.a.cronMax           = tc.scheduling.max_concurrent;
+    }
+  }
+
+  // ── Messaging ─────────────────────────────────────────────────────────────
+  if(data.messaging) {
+    var platforms = [];
+    var mg = data.messaging;
+
+    if(mg.telegram && mg.telegram.enabled) {
+      platforms.push('telegram');
+      // Restore allowed_users as a comma-separated user ID string
+      if(Array.isArray(mg.telegram.allowed_users) && mg.telegram.allowed_users.length)
+        S.a.tgUserId = mg.telegram.allowed_users.join(',');
+    }
+    if(mg.discord && mg.discord.enabled) {
+      platforms.push('discord');
+      if(Array.isArray(mg.discord.allowed_users) && mg.discord.allowed_users.length)
+        S.a.dcUserId = mg.discord.allowed_users.join(',');
+    }
+    if(mg.whatsapp && mg.whatsapp.enabled) {
+      platforms.push('whatsapp');
+      if(mg.whatsapp.phone_number_id) S.a.waPhoneId = mg.whatsapp.phone_number_id;
+    }
+    if(mg.email && mg.email.enabled) {
+      platforms.push('email');
+      if(mg.email.provider) S.a.emailProvider = mg.email.provider;
+      if(mg.email.address)  S.a.emailAddr     = mg.email.address;
+    }
+    if(mg.gchat && mg.gchat.enabled) {
+      platforms.push('gchat');
+      if(mg.gchat.space) S.a.gchatSpace = mg.gchat.space;
+    }
+    if(mg.sms && mg.sms.enabled) {
+      platforms.push('sms');
+      if(mg.sms.account_sid)   S.a.smsAccountSid = mg.sms.account_sid;
+      if(mg.sms.phone_number)  S.a.smsPhone      = mg.sms.phone_number;
+    }
+    if(mg.ha && mg.ha.enabled) {
+      platforms.push('ha');
+      if(mg.ha.url) S.a.haUrl = mg.ha.url;
+    }
+    if(platforms.length) S.a.platforms = platforms;
+  }
+
+  // ── Desktop ───────────────────────────────────────────────────────────────
+  if(data.desktop_agent) {
+    S.a.desktopAgent = data.desktop_agent.enabled !== false;
+    if(Array.isArray(data.desktop_agent.features)) S.a.desktopFeatures = data.desktop_agent.features;
+  } else if(data.desktop) {
+    // Backwards-compat with older config shape
+    S.a.desktopAgent = data.desktop.enabled !== false;
+  }
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+  if(Array.isArray(data.notifications)) S.a.notifyItems = data.notifications;
+
+  // ── Privacy ───────────────────────────────────────────────────────────────
+  if(data.privacy) {
+    var pr = data.privacy;
+    if(pr.store_conversations !== undefined)   S.a.storeConversations  = pr.store_conversations;
+    if(pr.store_project_summaries !== undefined) S.a.storeProjects     = pr.store_project_summaries;
+    if(pr.store_images !== undefined)          S.a.storeImages         = pr.store_images;
+    if(pr.store_videos !== undefined)          S.a.storeVideos         = pr.store_videos;
+    if(pr.store_conclusions_only !== undefined)S.a.storeConclusionsOnly= pr.store_conclusions_only;
+  }
+
+  // ── Install type ──────────────────────────────────────────────────────────
+  if(data.install_type) S.a.installType = data.install_type;
+}
+
+// Check whether the provider API key is already stored; if so, mark apiKey
+// as present so Step 2 shows "API Key Found" and not an empty password field.
+async function _checkRestoredSecrets(data) {
+  if(!data.provider || !data.provider.secret_ref || data.provider.name === 'ollama') return;
+  try {
+    var resp = await fetch(API_BASE + '/api/secrets/check/' + encodeURIComponent(data.provider.secret_ref), {
+      signal: AbortSignal.timeout(4000)
+    });
+    if(resp.ok) {
+      var body = await resp.json();
+      if(body.exists) {
+        // Mark that a key is present so the wizard shows "Keep / Replace / Clear"
+        S.a.apiKey = '__stored__';
+      }
+    }
+  } catch(_) {}
+}
+
+function _showRestoreBanner(data) {
+  // Remove any previously injected banner
+  var existing = document.getElementById('restoreBanner');
+  if(existing) existing.remove();
+
+  var banner = document.createElement('div');
+  banner.id = 'restoreBanner';
+  banner.style.cssText =
+    'width:100%;max-width:600px;margin-bottom:16px;padding:16px 20px;' +
+    'background:var(--vellum);border:1px solid var(--bioglow);' +
+    'display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;';
+
+  var info = document.createElement('div');
+  info.style.cssText = 'flex:1;min-width:0;';
+  info.innerHTML =
+    '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:0.72rem;' +
+    'letter-spacing:0.1em;color:var(--bioglow);text-transform:uppercase;margin-bottom:4px">' +
+    '✓ Previous Configuration Found</div>' +
+    '<div style="font-size:0.82rem;color:var(--sage)">' +
+    'Provider: <strong style="color:var(--bone)">' + (data.provider && data.provider.name || '—') + '</strong>' +
+    ' &nbsp;·&nbsp; Model: <strong style="color:var(--bone)">' + (data.provider && data.provider.model || '—') + '</strong>' +
+    '</div>';
+
+  var btn = document.createElement('button');
+  btn.className = 'btn btn-next';
+  btn.style.cssText = 'flex-shrink:0;padding:10px 20px;font-size:0.82rem;';
+  btn.textContent = 'Restore Previous Configuration';
+  btn.addEventListener('click', async function() {
+    btn.disabled = true;
+    btn.textContent = 'Restoring…';
+    // Check stored secrets before applying so the key step shows correct state
+    await _checkRestoredSecrets(data);
+    _applyRestoredConfig(data);
+    buildFlatSteps();
+    render();
+    banner.remove();
+    // Scroll to top of card
+    var card = qs('#card'); if(card) card.scrollIntoView({behavior:'smooth'});
+  });
+
+  banner.appendChild(info);
+  banner.appendChild(btn);
+
+  // Insert before the wizard card
+  var app = document.getElementById('app');
+  var card = qs('#card');
+  if(app && card) {
+    app.insertBefore(banner, card);
+  }
+}
+
+async function checkForExistingConfig() {
+  try {
+    var resp = await fetch(API_BASE + '/api/config', {
+      method: 'GET',
+      headers: {'Accept': 'application/json'},
+      signal: AbortSignal.timeout(5000)
+    });
+    if(!resp.ok) return;   // 404 = no config yet; silently skip
+    var data = await resp.json();
+    // Only show restore if the config has a provider configured
+    if(data && data.provider && data.provider.name) {
+      _showRestoreBanner(data);
+    }
+  } catch(_) {
+    // Backend unreachable or no config — silently skip
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────────────────────
 buildFlatSteps();
 render();
+// Check for existing config after initial render (non-blocking)
+checkForExistingConfig();
+
 </script>
 </body>
 </html>
