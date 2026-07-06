@@ -57,6 +57,10 @@ async def lifespan(app: FastAPI):
 
     from backend.startup import startup_async, shutdown_async
     from backend.api import start_messaging, start_jobs, start_desktop
+    from backend.trigger import start_keepalive, stop_keepalive
+
+    # Resolve the port so the keepalive pings the right local address.
+    _port = int(os.getenv("PORT", "8000"))
 
     steps = [
         "config", "database", "memory", "tools",
@@ -100,6 +104,12 @@ async def lifespan(app: FastAPI):
 
         _startup_done = True
         logger.info("HTTP server startup complete.")
+
+        # Start the self-healing keepalive loop as a background task.
+        # It pings /health every 14 min to prevent Render free-tier sleep,
+        # and re-initializes the router / Telegram if they fall over.
+        start_keepalive(_port)
+
     except Exception as exc:
         _startup_error = str(exc)
         logger.error(f"Startup failed: {exc}", exc_info=True)
@@ -112,6 +122,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
+    stop_keepalive()
     try:
         from backend.startup import shutdown_async
         await shutdown_async()
@@ -852,6 +863,22 @@ async def recovery_state() -> Dict[str, Any]:
     _require_startup()
     from backend.api import get_recovery_state
     return get_recovery_state()
+
+
+@app.get("/api/trigger/status", tags=["trigger"])
+async def trigger_status() -> Dict[str, Any]:
+    """
+    Return the current state of the self-healing keepalive task.
+    Useful for verifying that trigger.py is running on Render.
+    """
+    from backend.trigger import _task, PING_INTERVAL, _uptime_seconds
+    task_alive = _task is not None and not _task.done()
+    return {
+        "keepalive_running": task_alive,
+        "ping_interval_seconds": PING_INTERVAL,
+        "process_uptime_seconds": round(_uptime_seconds(), 1),
+        "task_cancelled": _task.cancelled() if _task and _task.done() else False,
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

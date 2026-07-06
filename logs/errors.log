@@ -560,3 +560,20 @@
 {"timestamp": "2026-07-06T23:06:55.288007Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
 {"timestamp": "2026-07-06T23:06:56.397935Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
 {"timestamp": "2026-07-06T23:06:56.405663Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-06T23:12:39.746054Z", "level": "INFO", "name": "errors.backend.trigger", "message": "[TRIGGER] Keepalive task created | task=<Task pending name='Task-2' coro=<_keepalive_loop() running at C:\\Users\\ashut\\Downloads\\Primus\\backend\\trigger.py:264> cb=[start_keepalive.<locals>._on_done() at C:\\Users\\ashut\\Downloads\\Primus\\backend\\trigger.py:386]>"}
+{"timestamp": "2026-07-06T23:12:39.746780Z", "level": "INFO", "name": "errors.backend.trigger", "message": "[TRIGGER] Keepalive loop started | ping_interval=840s | port=8000"}
+{"timestamp": "2026-07-06T23:12:39.751990Z", "level": "INFO", "name": "errors.backend.trigger", "message": "[TRIGGER] Keepalive task cancelled"}
+{"timestamp": "2026-07-06T23:12:39.752266Z", "level": "INFO", "name": "errors.backend.trigger", "message": "[TRIGGER] Keepalive loop cancelled \u2014 shutting down"}
+{"timestamp": "2026-07-06T23:12:39.865327Z", "level": "INFO", "name": "errors.backend.trigger", "message": "[TRIGGER] Starting recovery cycle"}
+{"timestamp": "2026-07-06T23:12:39.866012Z", "level": "WARNING", "name": "errors.backend.trigger", "message": "[TRIGGER] Recovery cycle partial \u2014 router_ok=False messaging_ok=True"}
+{"timestamp": "2026-07-06T23:13:01.987149Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-06T23:13:02.450889Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-06T23:13:02.464672Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-06T23:13:02.465772Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-06T23:13:02.466014Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-06T23:13:02.466202Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-06T23:13:02.466386Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-06T23:13:02.466565Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-06T23:13:02.466736Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-06T23:13:03.464304Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-06T23:13:03.472240Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
