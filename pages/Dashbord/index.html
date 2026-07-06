@@ -7,15 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- ⚙ Deployment URLs — loaded from shared config.js (single source of truth).
-     To update URLs: change pages/js/config.js only, nowhere else. -->
-<script src="../js/config.js"></script>
+<!-- ⚙ Deployment URLs — inlined directly so this page works in any
+     Vercel deployment topology (single project, separate project, local).
+     To update URLs, change BACKEND_URL below AND in pages/js/config.js. -->
 <script>
-// Fallback if config.js failed to load (e.g. direct file open in browser)
-if (typeof CONFIG === 'undefined') {
-  var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com", LEDGER_URL: "https://primus-ledger.vercel.app" };
-  window.PRIMUS_CONFIG = CONFIG;
-}
+var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com", LEDGER_URL: "https://primus-ledger.vercel.app" };
+window.PRIMUS_CONFIG = CONFIG;
 </script>
 <style>
 
@@ -622,15 +619,23 @@ if (typeof CONFIG === 'undefined') {
     padding:7px 14px;
     z-index:200;
     pointer-events:none;
-    transition:opacity .4s ease;
+    transition:opacity .4s ease, border-color .4s ease;
   }
-  #backendHealth.online  { color:var(--bioglow); border-color:rgba(63,232,176,0.3); }
-  #backendHealth.offline { color:var(--rust);    border-color:rgba(201,123,61,0.3); }
+  #backendHealth.online  { color:var(--bioglow); border-color:rgba(63,232,176,0.3); pointer-events:none; }
+  #backendHealth.offline { color:var(--rust);    border-color:rgba(201,123,61,0.3); pointer-events:auto; cursor:pointer; }
+  #backendHealth.offline:hover { border-color:var(--rust); background:rgba(201,123,61,0.12); }
   #healthDot{
     width:7px; height:7px;
     border-radius:50%;
     background:currentColor;
     flex-shrink:0;
+  }
+  #healthWakeLink{
+    color:inherit;
+    text-decoration:none;
+    display:flex;
+    align-items:center;
+    gap:7px;
   }
 
 </style>
@@ -847,10 +852,14 @@ if (typeof CONFIG === 'undefined') {
 
 </main>
 
-<!-- Backend health badge — silently checks GET /health every 30 s -->
+<!-- Backend health badge — silently checks GET /health every 30 s.
+     When offline (Render free tier sleeping), clicking opens the backend
+     URL in a new tab which wakes the service. -->
 <div id="backendHealth" role="status" aria-live="polite" aria-label="Backend status">
-  <span id="healthDot"></span>
-  <span id="healthLabel">Checking…</span>
+  <a id="healthWakeLink" href="https://primus-lyq1.onrender.com" target="_blank" rel="noopener noreferrer" tabindex="-1" aria-hidden="true">
+    <span id="healthDot"></span>
+    <span id="healthLabel">Checking…</span>
+  </a>
 </div>
 
 <script>
@@ -861,10 +870,23 @@ if (typeof CONFIG === 'undefined') {
   // ---------- Backend Health Check (silent, non-blocking) ----------
   var healthBadge = document.getElementById('backendHealth');
   var healthLabel = document.getElementById('healthLabel');
+  var healthWakeLink = document.getElementById('healthWakeLink');
 
   function updateHealthBadge(online) {
     healthBadge.className = online ? 'online' : 'offline';
-    healthLabel.textContent = online ? '🟢 Backend Online' : '🔴 Backend Offline';
+    if(online) {
+      healthLabel.textContent = '🟢 Backend Online';
+      // Online: badge is informational only — not a button
+      healthWakeLink.tabIndex = -1;
+      healthWakeLink.setAttribute('aria-hidden', 'true');
+      healthBadge.removeAttribute('title');
+    } else {
+      healthLabel.textContent = '🔴 Click to Wake Backend';
+      // Offline: make it a real clickable link so keyboard users can reach it
+      healthWakeLink.tabIndex = 0;
+      healthWakeLink.removeAttribute('aria-hidden');
+      healthBadge.title = 'Render free tier sleeps after inactivity. Click to open the backend and wake it.';
+    }
   }
 
   function checkHealth() {

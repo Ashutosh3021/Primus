@@ -7,21 +7,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,400&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- ⚙ Deployment URLs — loaded first so launchBackend() always finds LEDGER_URL.
-     config.js is the canonical source of truth; this block must stay in sync.
-     If config.js is loaded later it will overwrite window.PRIMUS_CONFIG, which
-     is fine because both files should carry the same values. -->
-<script src="../js/config.js"></script>
+<!-- ⚙ Deployment URLs — inlined directly so this page works in any
+     Vercel deployment topology (single project, separate project, local).
+     To update URLs, change BACKEND_URL and LEDGER_URL below AND in
+     pages/js/config.js so all pages stay in sync. -->
 <script>
-// Fallback: if config.js failed to load (e.g. running the file directly),
-// define minimal CONFIG so the page still works.
-if (typeof CONFIG === 'undefined') {
-  var CONFIG = {
-    BACKEND_URL: "https://primus-lyq1.onrender.com",
-    LEDGER_URL:  "https://primus-ledger.vercel.app"
-  };
-  window.PRIMUS_CONFIG = CONFIG;
-}
+var CONFIG = {
+  BACKEND_URL: "https://primus-lyq1.onrender.com",
+  LEDGER_URL:  "https://primus-ledger.vercel.app"
+};
+window.PRIMUS_CONFIG = CONFIG;
 </script>
 <style>
 :root{
@@ -1450,7 +1445,11 @@ function advance(){
 // ─────────────────────────────────────────────────────────────
 function finalValidate(){
   if(!S.a.provider) return {step:'provider',msg:'Provider is required.'};
-  if(S.a.provider!=='ollama'&&(!S.a.apiKey||S.a.apiKey.length<8)) return {step:'api_key',msg:'A valid API key is required.'};
+  if(S.a.provider!=='ollama'){
+    // '__stored__' means the key is already in the backend — accept it
+    if(!S.a.apiKey || (S.a.apiKey !== '__stored__' && S.a.apiKey.length < 8))
+      return {step:'api_key',msg:'A valid API key is required.'};
+  }
   if(!S.a.model&&!S.a.modelCustom&&!S.a.ollamaModel) return {step:'model',msg:'A model must be selected.'};
   if(!S.a.platforms.length) return {step:'platforms',msg:'At least one messaging platform is required.'};
   return null;
@@ -2104,8 +2103,12 @@ async function checkForExistingConfig() {
     });
     if(!resp.ok) return;   // 404 = no config yet; silently skip
     var data = await resp.json();
-    // Only show restore if the config has a provider configured
-    if(data && data.provider && data.provider.name) {
+    // Only show restore banner if the Wizard has been completed before.
+    // A config with _wizard_state means the user finished the Wizard at
+    // least once and applied it via POST /api/config/apply.
+    // The seed config.json in the repo has no _wizard_state, so a fresh
+    // deploy never shows this banner until the Wizard is actually completed.
+    if(data && data._wizard_state && data.provider && data.provider.name) {
       _showRestoreBanner(data);
     }
   } catch(_) {

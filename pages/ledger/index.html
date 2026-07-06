@@ -11,15 +11,12 @@
     rel="stylesheet"
   />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- ⚙ Deployment URLs — loaded from shared config.js (single source of truth).
-       To update URLs: change pages/js/config.js only, nowhere else. -->
-  <script src="../js/config.js"></script>
+  <!-- ⚙ Deployment URLs — inlined directly so this page works in any
+       Vercel deployment topology (single project, separate project, local).
+       To update URLs, change BACKEND_URL below AND in pages/js/config.js. -->
   <script>
-  // Fallback if config.js failed to load (e.g. direct file open in browser)
-  if (typeof CONFIG === 'undefined') {
-    var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com", LEDGER_URL: "https://primus-ledger.vercel.app" };
-    window.PRIMUS_CONFIG = CONFIG;
-  }
+  var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com", LEDGER_URL: "https://primus-ledger.vercel.app" };
+  window.PRIMUS_CONFIG = CONFIG;
   </script>
   <style>
     * {
