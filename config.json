@@ -1,13 +1,19 @@
 {
   "version": 1,
   "provider": {
-    "name": "ollama",
-    "secret_ref": "provider.ollama.api_key",
-    "model": "llama3.2"
+    "name": "openrouter",
+    "secret_ref": "provider.openrouter.api_key",
+    "model": "anthropic/claude-sonnet-4-5"
   },
   "messaging": {
-    "telegram": {"enabled": false},
-    "discord": {"enabled": false}
+    "telegram": {
+      "enabled": false,
+      "secret_ref": "messaging.telegram.bot_token"
+    },
+    "discord": {
+      "enabled": false,
+      "secret_ref": "messaging.discord.bot_token"
+    }
   },
   "memory": {
     "enabled": true,
@@ -17,5 +23,9 @@
     "web_search": false,
     "browser": false,
     "terminal": false
+  },
+  "desktop": {
+    "enabled": true,
+    "allowed_paths": ["."]
   }
 }

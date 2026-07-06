@@ -11,10 +11,15 @@
     rel="stylesheet"
   />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- ⚙ BACKEND URL — change this one line before every deploy -->
+  <!-- ⚙ Deployment URLs — loaded from shared config.js (single source of truth).
+       To update URLs: change pages/js/config.js only, nowhere else. -->
+  <script src="../js/config.js"></script>
   <script>
-  var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com" };
-  window.PRIMUS_CONFIG = CONFIG;
+  // Fallback if config.js failed to load (e.g. direct file open in browser)
+  if (typeof CONFIG === 'undefined') {
+    var CONFIG = { BACKEND_URL: "https://primus-lyq1.onrender.com", LEDGER_URL: "https://primus-ledger.vercel.app" };
+    window.PRIMUS_CONFIG = CONFIG;
+  }
   </script>
   <style>
     * {

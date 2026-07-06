@@ -11,5 +11,11 @@
         { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/js/config.js",
+      "destination": "/js/config.js"
+    }
   ]
 }
