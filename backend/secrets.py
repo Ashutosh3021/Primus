@@ -1,148 +1,154 @@
 """
-Secrets management for Primus backend (OS keyring + .env fallback).
+Secrets management for Primus backend.
 
-Persistence strategy
---------------------
-1. set_secret() tries the OS keyring first.  On headless Linux servers
-   (Render, Docker) there is no D-Bus / SecretService backend, so keyring
-   raises an exception.  We catch that exception and fall through to the
-   .env file writer — no 500 is ever returned to the caller.
+Storage strategy
+----------------
+On Render (headless Linux) the OS keyring has no backend.  We skip it
+entirely and use a dedicated secrets file on the persistent disk.
 
-2. After writing to .env we ALSO inject the value directly into os.environ
-   so that get_secret() can retrieve it in the *same process* without
-   waiting for a restart.  load_dotenv() runs once at module import time;
-   values written to .env after that are invisible to os.getenv() unless
-   we update os.environ ourselves.
+Write path (set_secret):
+  1. Write atomically to SECRETS_PATH (.secrets.env) via a .tmp file so
+     a crash between write and rename cannot corrupt the store.
+  2. Immediately inject into os.environ so the running process sees the
+     value without a restart.
 
-3. get_secret() tries the OS keyring first, then os.environ.  It calls
-   load_dotenv(override=True) right before the os.getenv() call so that
-   newly written .env values (from a previous set_secret) are always
-   visible, even when the module-level load_dotenv ran before the secret
-   was stored.
+Read path (get_secret):
+  Priority:
+    1. os.environ  — covers Render dashboard env vars (PROVIDER_GEMINI_API_KEY,
+                     MESSAGING_TELEGRAM_BOT_TOKEN, etc.) set before process start.
+    2. SECRETS_PATH (.secrets.env) — values written by set_secret() / Wizard.
+    3. ENV_PATH (.env) — legacy / developer override.
+  get_secret() reloads both files with override=False before each lookup so
+  values added by set_secret() in the same process are always visible.
+
+Restart survival
+----------------
+Both SECRETS_PATH and CONFIG_PATH live under BASE_DIR which is mounted on
+Render's persistent 1 GB disk (/opt/render/project/src).  Restarts do not
+touch the disk, so all written secrets survive indefinitely.
 """
 
 import os
+from pathlib import Path
 
-from dotenv import load_dotenv
-import keyring
+from dotenv import load_dotenv, dotenv_values
 
-from backend.constants import ENV_PATH
+from backend.constants import ENV_PATH, SECRETS_PATH
 from backend.exceptions import SecretNotFoundError
 from backend.logger import get_errors_logger, register_secret
 
 logger = get_errors_logger(__name__)
 
-# Load environment variables from .env file if present at import time.
-# set_secret() and get_secret() each call load_dotenv(override=True) as
-# needed so that values written to .env mid-process are always visible.
+# ── Load both secret stores at import time ────────────────────────────────────
+# override=False so Render dashboard env vars (already in os.environ) win.
 if ENV_PATH.exists():
-    load_dotenv(dotenv_path=ENV_PATH)
-    logger.info(f"Loaded environment variables from {ENV_PATH}")
+    load_dotenv(dotenv_path=ENV_PATH, override=False)
+    logger.info(f"Loaded .env from {ENV_PATH}")
+
+if SECRETS_PATH.exists():
+    load_dotenv(dotenv_path=SECRETS_PATH, override=True)
+    logger.info(f"Loaded secrets store from {SECRETS_PATH}")
 
 
-def _write_env_file(env_key: str, secret_value: str) -> None:
+def _reload_secrets() -> None:
     """
-    Write (or overwrite) a key=value pair in the .env file and immediately
-    inject it into os.environ so the running process can read it without a
-    restart.
-    """
-    lines: list = []
+    Re-read both secret files into os.environ.
 
+    Called by get_secret() so values written by set_secret() during this
+    process lifetime are always visible without a restart.
+    override=True for SECRETS_PATH ensures a value written by set_secret()
+    takes precedence over a stale os.environ entry from the same process.
+    """
     if ENV_PATH.exists():
-        with open(ENV_PATH, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+        load_dotenv(dotenv_path=ENV_PATH, override=False)
+    if SECRETS_PATH.exists():
+        load_dotenv(dotenv_path=SECRETS_PATH, override=True)
 
-    # Remove any existing entry for this key
-    new_lines = [
-        line for line in lines
-        if not line.strip().startswith(env_key + "=")
-    ]
 
-    # Append the new entry
-    new_lines.append(f"{env_key}={secret_value}\n")
+def _write_secrets_file(env_key: str, secret_value: str) -> None:
+    """
+    Atomically write (or overwrite) a key=value pair in SECRETS_PATH.
 
-    with open(ENV_PATH, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
+    Uses a .tmp file + rename so that a crash mid-write never leaves the
+    secrets store in a partially-written, corrupt state.
+    """
+    # Read existing entries (skip the key we are about to write)
+    existing: dict[str, str] = {}
+    if SECRETS_PATH.exists():
+        existing = dict(dotenv_values(SECRETS_PATH))
+    existing[env_key] = secret_value
 
-    # Inject immediately into the running process so get_secret() works
-    # without a restart — os.getenv() reads os.environ, not the file.
+    # Build file content
+    lines = [f"{k}={v}\n" for k, v in existing.items()]
+
+    # Atomic write: write to .tmp then rename
+    tmp_path = SECRETS_PATH.with_suffix(".env.tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+    tmp_path.replace(SECRETS_PATH)
+
+    # Inject into the running process immediately
     os.environ[env_key] = secret_value
-    logger.info(f"Stored secret in .env and injected into os.environ: {env_key}")
+    logger.info(f"Secret stored and injected into os.environ: {env_key}")
 
 
 def get_secret(secret_ref: str) -> str:
     """
-    Get a secret from the secret store. First tries OS keychain, then .env file.
+    Retrieve a secret.
 
-    Calls load_dotenv(override=True) before reading os.environ so that secrets
-    written by set_secret() in the same process lifetime are always visible,
-    even if they were written after the module-level load_dotenv() ran at
-    import time.
+    Lookup order:
+      1. os.environ (covers Render dashboard env vars set before startup)
+      2. SECRETS_PATH (.secrets.env) re-loaded fresh
+      3. ENV_PATH (.env) re-loaded fresh
 
     Args:
-        secret_ref: Reference to the secret (e.g., "provider.openrouter.api_key")
+        secret_ref: Dotted reference, e.g. "provider.gemini.api_key"
 
     Returns:
-        The secret value
+        The secret value string.
 
     Raises:
-        SecretNotFoundError: If secret is not found in either store
+        SecretNotFoundError: If not found in any store.
     """
-    # 1. Try OS keyring
-    try:
-        secret = keyring.get_password("primus", secret_ref)
-        if secret:
-            register_secret(secret)
-            logger.info(f"Retrieved secret from keychain: {secret_ref}")
-            return secret
-    except Exception as e:
-        logger.warning(f"Failed to retrieve from keychain: {e}")
-
-    # 2. Re-load .env so values written by set_secret() mid-process are visible
-    if ENV_PATH.exists():
-        load_dotenv(dotenv_path=ENV_PATH, override=True)
-
-    # 3. Try os.environ (covers both pre-existing env vars and .env values)
     env_key = secret_ref.replace(".", "_").upper()
-    secret = os.getenv(env_key)
-    if secret:
-        register_secret(secret)
-        logger.info(f"Retrieved secret from .env: {env_key}")
-        return secret
+
+    # Re-load files so mid-process writes by set_secret() are visible.
+    _reload_secrets()
+
+    value = os.getenv(env_key)
+    if value:
+        register_secret(value)
+        logger.info(f"Secret resolved: {secret_ref} (key={env_key})")
+        return value
 
     raise SecretNotFoundError(
-        f"Secret not found: {secret_ref} (tried keychain and .env variable {env_key})"
+        f"Secret not found: {secret_ref} "
+        f"(looked for env var {env_key} in os.environ, "
+        f"{SECRETS_PATH.name}, and {ENV_PATH.name})"
     )
 
 
-def set_secret(secret_ref: str, secret_value: str, use_keyring: bool = True) -> None:
+def set_secret(secret_ref: str, secret_value: str) -> None:
     """
-    Set a secret in the secret store.
-
-    Tries the OS keyring when use_keyring=True.  If the keyring is
-    unavailable (e.g. headless Linux on Render), falls back to the .env
-    file automatically — no exception is propagated to the caller.
+    Persist a secret to the secrets store and inject it into os.environ.
 
     Args:
-        secret_ref: Reference to the secret (e.g., "provider.openrouter.api_key")
-        secret_value: The secret value to store
-        use_keyring: Whether to attempt the OS keyring first (default True)
+        secret_ref:   Dotted reference, e.g. "provider.gemini.api_key"
+        secret_value: The plaintext value to store.
     """
+    if not secret_value:
+        logger.warning(f"set_secret called with empty value for {secret_ref} — ignored")
+        return
+
     env_key = secret_ref.replace(".", "_").upper()
+    _write_secrets_file(env_key, secret_value)
 
-    if use_keyring:
-        try:
-            keyring.set_password("primus", secret_ref, secret_value)
-            logger.info(f"Stored secret in keychain: {secret_ref}")
-            # Also inject into os.environ so get_secret() works in-process
-            # without having to re-read the keyring on every call.
-            os.environ[env_key] = secret_value
-            return
-        except Exception as e:
-            logger.warning(
-                f"Keyring unavailable ({type(e).__name__}: {e}) — "
-                f"falling back to .env file for secret: {secret_ref}"
-            )
 
-    # .env fallback — always reaches here when keyring is absent or fails
-    _write_env_file(env_key, secret_value)
+def list_stored_secrets() -> list[str]:
+    """
+    Return the list of secret keys (not values) currently in SECRETS_PATH.
+    Used by diagnostics and the health endpoint.
+    """
+    if not SECRETS_PATH.exists():
+        return []
+    return list(dotenv_values(SECRETS_PATH).keys())

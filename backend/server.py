@@ -521,7 +521,7 @@ async def get_config() -> Dict[str, Any]:
 
 @app.post("/api/secrets/set", tags=["secrets"])
 async def set_secret_endpoint(payload: SecretSetRequest) -> Dict[str, Any]:
-    """Store a secret in the OS keyring or .env fallback."""
+    """Persist a secret to the on-disk secrets store (.secrets.env)."""
     try:
         from backend.secrets import set_secret
         set_secret(payload.secret_ref, payload.secret_value)
@@ -553,6 +553,16 @@ async def check_secret_endpoint(secret_ref: str) -> Dict[str, Any]:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         )
+
+
+@app.get("/api/secrets/stored", tags=["secrets"])
+async def list_stored_secrets_endpoint() -> Dict[str, Any]:
+    """
+    Return the list of secret key names persisted in the secrets store.
+    Values are never exposed. Used by diagnostics to verify persistence.
+    """
+    from backend.secrets import list_stored_secrets
+    return {"stored_keys": list_stored_secrets()}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

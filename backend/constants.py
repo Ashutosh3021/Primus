@@ -12,6 +12,7 @@ BASE_DIR: Path = Path(__file__).parent.parent
 BACKEND_DIR: Path = BASE_DIR / "backend"
 CONFIG_PATH: Path = BASE_DIR / "config.json"
 ENV_PATH: Path = BASE_DIR / ".env"
+SECRETS_PATH: Path = BASE_DIR / ".secrets.env"   # persistent secrets store (never commit)
 LOG_DIR: Path = BASE_DIR / "logs"
 
 # Log streams

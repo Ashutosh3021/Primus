@@ -92,7 +92,7 @@ def verify_structure() -> None:
         "backend/router/__init__.py",
         "backend/router/ai_router.py",
         "pages/Dashbord/index.html",
-        "pages/Wizard/wizard.html",
+        "pages/Wizard/index.html",
         "pages/ledger/index.html",
     ]
     for path in required_paths:
@@ -332,6 +332,7 @@ def verify_server_endpoints() -> None:
             "/api/config/apply",
             "/api/config",
             "/api/secrets/set",
+            "/api/secrets/stored",
             "/api/chat",
             "/api/jobs",
             "/api/jobs/{job_id}",
@@ -390,7 +391,9 @@ def verify_deployment() -> None:
     # runtime.txt
     rt_path = ROOT / "runtime.txt"
     if rt_path.exists():
-        check("runtime.txt has python-3.13", "python-3.13" in rt_path.read_text())
+        rt_content = rt_path.read_text().strip()
+        check("runtime.txt has Python 3.13.x", rt_content.startswith("3.13"),
+              f"found: {rt_content!r}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -426,7 +429,7 @@ def verify_frontend_integration() -> None:
     check("Ledger connects to /api/jobs",    "/api/jobs" in ledger)
     check("Ledger has auto-refresh (setInterval)", "setInterval" in ledger)
 
-    wizard = (ROOT / "pages" / "Wizard" / "wizard.html").read_text(encoding="utf-8", errors="ignore")
+    wizard = (ROOT / "pages" / "Wizard" / "index.html").read_text(encoding="utf-8", errors="ignore")
     check("Wizard POST to /api/config/apply", "/api/config/apply" in wizard)
     check("Wizard polls /health for READY",   "/health" in wizard)
     check("Wizard uses /api/secrets/set",     "/api/secrets/set" in wizard)

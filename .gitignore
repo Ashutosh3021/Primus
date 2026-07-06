@@ -4,3 +4,8 @@ __pycache__/
 # __init__.py
 .venv/
 .vercel
+
+# Secret stores — never commit these
+.env
+.secrets.env
+*.env.tmp
