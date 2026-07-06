@@ -357,7 +357,7 @@ var S = {
 var PROVIDERS = [
   {v:'openrouter',   l:'OpenRouter',           d:'Unified API for many models.'},
   {v:'openai',       l:'OpenAI',               d:'GPT series.'},
-  {v:'google',       l:'Google AI Studio',     d:'Gemini series.'},
+  {v:'gemini',       l:'Google AI Studio',     d:'Gemini series.'},
   {v:'anthropic',    l:'Anthropic',            d:'Claude series.'},
   {v:'kimi',         l:'Kimi / Moonshot',      d:'Kimi models.'},
   {v:'zai',          l:'Z.AI / GLM',           d:'GLM series.'},
@@ -368,7 +368,7 @@ var PROVIDERS = [
 var MODELS_BY_PROVIDER = {
   openrouter:  [{v:'anthropic/claude-sonnet-4-5',l:'Claude Sonnet 4.5'},{v:'openai/gpt-4o',l:'GPT-4o'},{v:'google/gemini-2.5-flash',l:'Gemini 2.5 Flash'},{v:'deepseek/deepseek-r1',l:'DeepSeek R1'},{v:'moonshotai/kimi-k2',l:'Kimi K2'},{v:'__custom__',l:'Custom Model…'}],
   openai:      [{v:'gpt-4o',l:'GPT-4o'},{v:'gpt-4o-mini',l:'GPT-4o mini'},{v:'o3',l:'o3'},{v:'o4-mini',l:'o4-mini'},{v:'__custom__',l:'Custom Model…'}],
-  google:      [{v:'gemini-2.5-flash',l:'Gemini 2.5 Flash'},{v:'gemini-2.5-pro',l:'Gemini 2.5 Pro'},{v:'gemini-2.0-flash',l:'Gemini 2.0 Flash'},{v:'__custom__',l:'Custom Model…'}],
+  gemini:      [{v:'gemini-2.5-flash',l:'Gemini 2.5 Flash'},{v:'gemini-2.5-pro',l:'Gemini 2.5 Pro'},{v:'gemini-2.0-flash',l:'Gemini 2.0 Flash'},{v:'__custom__',l:'Custom Model…'}],
   anthropic:   [{v:'claude-opus-4-5',l:'Claude Opus 4.5'},{v:'claude-sonnet-4-5',l:'Claude Sonnet 4.5'},{v:'claude-haiku-3-5',l:'Claude Haiku 3.5'},{v:'__custom__',l:'Custom Model…'}],
   kimi:        [{v:'kimi-k2',l:'Kimi K2'},{v:'moonshot-v1-8k',l:'Moonshot v1 8k'},{v:'__custom__',l:'Custom Model…'}],
   zai:         [{v:'glm-4',l:'GLM-4'},{v:'glm-4-flash',l:'GLM-4 Flash'},{v:'__custom__',l:'Custom Model…'}],
@@ -1847,8 +1847,9 @@ async function doStartOver(){
 
 // Map from config.json provider name → wizard provider key
 var PROVIDER_NAME_MAP = {
-  openrouter: 'openrouter', openai: 'openai', gemini: 'google',
-  google: 'google', anthropic: 'anthropic', moonshot: 'kimi',
+  openrouter: 'openrouter', openai: 'openai', gemini: 'gemini',
+  google: 'gemini',         // legacy: old configs that stored "google" restore as "gemini"
+  anthropic: 'anthropic', moonshot: 'kimi',
   kimi: 'kimi', glm: 'zai', zai: 'zai', groq: 'groq', ollama: 'ollama'
 };
 
