@@ -590,6 +590,9 @@ async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
 
     from backend.api import chat, build_prompt, add_interaction
     from backend.providers.base import Message
+    from backend.metrics import get_metrics_registry
+
+    _metrics = get_metrics_registry()
 
     try:
         # Build context-aware prompt
@@ -599,11 +602,30 @@ async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
         )
 
         messages = [Message(role="user", content=enriched_prompt)]
+
+        import time as _time
+        _t0 = _time.monotonic()
         completion = await chat(
             messages,
             temperature=payload.temperature,
             max_tokens=payload.max_tokens,
         )
+        _latency_ms = int((_time.monotonic() - _t0) * 1000)
+
+        # Track metrics
+        _provider = completion.provider or "unknown"
+        _metrics.increment("ai.calls_total",   {"provider": _provider})
+        _metrics.increment("ai.calls_success", {"provider": _provider})
+        _metrics.gauge("ai.last_latency_ms", _latency_ms)
+
+        _usage = completion.usage or {}
+        _input_tokens  = _usage.get("prompt_tokens",     _usage.get("input_tokens",  0)) or 0
+        _output_tokens = _usage.get("completion_tokens", _usage.get("output_tokens", 0)) or 0
+        _total_tokens  = _usage.get("total_tokens", _input_tokens + _output_tokens) or 0
+        if _total_tokens:
+            _metrics.increment("ai.tokens_total",  {"provider": _provider}, _total_tokens)
+            _metrics.increment("ai.tokens_input",  {"provider": _provider}, _input_tokens)
+            _metrics.increment("ai.tokens_output", {"provider": _provider}, _output_tokens)
 
         # Persist the interaction
         await add_interaction(
@@ -622,6 +644,8 @@ async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
         }
 
     except Exception as exc:
+        from backend.metrics import get_metrics_registry as _gmr
+        _gmr().increment("ai.calls_error", {"provider": "unknown"})
         logger.error(f"Chat error: {exc}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -878,6 +902,105 @@ async def trigger_status() -> Dict[str, Any]:
         "ping_interval_seconds": PING_INTERVAL,
         "process_uptime_seconds": round(_uptime_seconds(), 1),
         "task_cancelled": _task.cancelled() if _task and _task.done() else False,
+    }
+
+
+@app.get("/api/dashboard", tags=["dashboard"])
+async def dashboard_metrics() -> Dict[str, Any]:
+    """
+    Single aggregated endpoint for the Dashboard metrics panel.
+
+    Returns all counters the frontend needs in one HTTP call:
+      - uptime_seconds
+      - jobs: total, pending, running, completed, failed
+      - ai: calls_total, calls_success, calls_error, tokens_total
+      - telegram: messages_received, replies_sent
+      - errors: count from error log file
+      - memory_mb: resident set size of this process
+      - modules: lifecycle states
+    """
+    import os, psutil  # psutil is an optional dep; fall back gracefully
+
+    from backend.metrics import get_metrics_registry
+    from backend.db import JobStore, DB_PATH
+    from backend.constants import LOG_DIR
+
+    reg = get_metrics_registry()
+
+    # ── Job counts (from SQLite — persistent) ────────────────────────────────
+    job_counts: Dict[str, int] = {}
+    try:
+        store = JobStore()
+        job_counts = await store.get_counts_by_status()
+    except Exception:
+        pass
+
+    jobs_total = sum(job_counts.values())
+
+    # ── AI + Telegram metrics (in-memory counters) ────────────────────────────
+    ai_calls_total   = reg.get_counter("ai.calls_total")
+    ai_calls_success = reg.get_counter("ai.calls_success")
+    ai_calls_error   = reg.get_counter("ai.calls_error")
+    tokens_total     = reg.get_counter("ai.tokens_total")
+    tg_received      = reg.get_counter("telegram.messages_received")
+    tg_sent          = reg.get_counter("telegram.replies_sent")
+
+    # ── Error count (from log file — persistent across restarts) ─────────────
+    error_count = 0
+    try:
+        error_log = LOG_DIR / "errors.log"
+        if error_log.exists():
+            with open(error_log, "r", encoding="utf-8", errors="replace") as fh:
+                error_count = sum(1 for line in fh if line.strip())
+    except Exception:
+        pass
+
+    # ── Memory usage (RSS in MB) ──────────────────────────────────────────────
+    memory_mb = 0.0
+    try:
+        proc = psutil.Process(os.getpid())
+        memory_mb = round(proc.memory_info().rss / (1024 * 1024), 1)
+    except Exception:
+        try:
+            # Fallback: read /proc/self/status on Linux
+            with open("/proc/self/status") as f:
+                for line in f:
+                    if line.startswith("VmRSS:"):
+                        memory_mb = round(int(line.split()[1]) / 1024, 1)
+                        break
+        except Exception:
+            pass
+
+    # ── Module states ─────────────────────────────────────────────────────────
+    module_states: Dict[str, str] = {}
+    try:
+        from backend.api import get_module_states
+        module_states = get_module_states()
+    except Exception:
+        pass
+
+    return {
+        "uptime_seconds": round(_uptime_seconds(), 1),
+        "jobs": {
+            "total":     jobs_total,
+            "pending":   job_counts.get("pending",   0),
+            "running":   job_counts.get("running",   0),
+            "completed": job_counts.get("completed", 0),
+            "failed":    job_counts.get("failed",    0),
+        },
+        "ai": {
+            "calls_total":   ai_calls_total,
+            "calls_success": ai_calls_success,
+            "calls_error":   ai_calls_error,
+            "tokens_total":  tokens_total,
+        },
+        "telegram": {
+            "messages_received": tg_received,
+            "replies_sent":      tg_sent,
+        },
+        "errors": error_count,
+        "memory_mb": memory_mb,
+        "modules": module_states,
     }
 
 

@@ -126,6 +126,19 @@ class MetricsRegistry:
             }
         }
 
+    def get_counter(self, name: str, labels: dict = None) -> int:
+        """Get the current value of a named counter (sum across all label combos if labels=None)."""
+        if labels is not None:
+            key = self._make_key(name, labels)
+            return self._counters.get(key, 0)
+        # Sum all keys that start with name[
+        total = 0
+        prefix = name + "["
+        for k, v in self._counters.items():
+            if k == name + "[]" or k.startswith(prefix):
+                total += v
+        return total
+
     def reset(self):
         """Reset all metrics."""
         self._metrics.clear()

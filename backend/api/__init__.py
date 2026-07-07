@@ -238,6 +238,9 @@ async def _handle_incoming_message(msg: IncomingMessage) -> str:
     Instrumented with [TG_AI] / [TG_PROVIDER] tags so Render logs show
     exactly which stage fails when processing a Telegram message.
     """
+    _metrics = get_metrics_registry()
+    _metrics.increment("telegram.messages_received", {"platform": msg.platform})
+
     logger.info(
         f"[TG_AI] _handle_incoming_message | "
         f"platform={msg.platform} | "
@@ -265,7 +268,12 @@ async def _handle_incoming_message(msg: IncomingMessage) -> str:
             f"[TG_AI] Calling AI router | router_state={router_state}"
         )
         messages = [Message(role="user", content=prompt)]
+
+        import time as _time
+        _t0 = _time.monotonic()
         completion = await chat(messages)
+        _latency_ms = int((_time.monotonic() - _t0) * 1000)
+
         logger.info(
             f"[TG_PROVIDER] AI router returned | "
             f"provider={completion.provider} | "
@@ -275,7 +283,22 @@ async def _handle_incoming_message(msg: IncomingMessage) -> str:
             f"reply_preview={completion.content[:120]!r}"
         )
 
-        # ── 3. Persist interaction ────────────────────────────────────────────
+        # ── 3. Record metrics ─────────────────────────────────────────────────
+        _metrics.increment("ai.calls_total", {"provider": _router.provider_name if _router else "unknown"})
+        _metrics.increment("ai.calls_success", {"provider": _router.provider_name if _router else "unknown"})
+
+        _usage = completion.usage or {}
+        _input_tokens  = _usage.get("prompt_tokens",     _usage.get("input_tokens",  0)) or 0
+        _output_tokens = _usage.get("completion_tokens", _usage.get("output_tokens", 0)) or 0
+        _total_tokens  = _usage.get("total_tokens", _input_tokens + _output_tokens) or 0
+        if _total_tokens:
+            _metrics.increment("ai.tokens_total",  {"provider": _router.provider_name if _router else "unknown"}, _total_tokens)
+            _metrics.increment("ai.tokens_input",  {"provider": _router.provider_name if _router else "unknown"}, _input_tokens)
+            _metrics.increment("ai.tokens_output", {"provider": _router.provider_name if _router else "unknown"}, _output_tokens)
+
+        _metrics.gauge("ai.last_latency_ms", _latency_ms)
+
+        # ── 4. Persist interaction ────────────────────────────────────────────
         logger.info(
             f"[TG_AI] Persisting interaction for user_id={msg.user_id}"
         )
@@ -283,9 +306,11 @@ async def _handle_incoming_message(msg: IncomingMessage) -> str:
             msg.user_id, msg.conversation_id, msg.content, completion.content
         )
         logger.info(f"[TG_AI] Interaction persisted — returning reply")
+        _metrics.increment("telegram.replies_sent", {"platform": msg.platform})
         return completion.content
 
     except Exception as exc:
+        _metrics.increment("ai.calls_error", {"platform": msg.platform})
         logger.exception(
             f"[TG_ERROR] _handle_incoming_message failed | "
             f"platform={msg.platform} | "

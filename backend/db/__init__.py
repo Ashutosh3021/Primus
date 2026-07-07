@@ -351,6 +351,17 @@ class JobStore:
                 ))
         return jobs
 
+    async def get_counts_by_status(self) -> Dict[str, int]:
+        """Return a dict of job counts grouped by status."""
+        counts: Dict[str, int] = {s.value: 0 for s in JobStatus}
+        async with aiosqlite.connect(DB_PATH) as conn:
+            cursor = await conn.execute(
+                "SELECT status, COUNT(*) FROM jobs GROUP BY status"
+            )
+            async for row in cursor:
+                counts[row[0]] = row[1]
+        return counts
+
     async def get_all(self, user_id: Optional[str] = None, limit: int = 100) -> List[Job]:
         """Get all jobs, optionally filtered by user."""
         jobs = []

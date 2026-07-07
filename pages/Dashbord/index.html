@@ -603,6 +603,72 @@ window.PRIMUS_CONFIG = CONFIG;
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important; }
   }
 
+  /* ============ DASHBOARD METRICS PANEL ============ */
+  #metricsPanel{
+    position:fixed;
+    top:70px; right:20px;
+    width:240px;
+    background:rgba(10,21,18,0.97);
+    border:1px solid var(--sage-line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    color:var(--sage);
+    z-index:190;
+    transition:opacity .3s ease;
+  }
+  #metricsPanel .mp-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:8px 12px 6px;
+    border-bottom:1px solid var(--sage-line);
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    font-size:0.65rem;
+  }
+  #metricsPanel .mp-header span{ color:var(--bioglow); }
+  #metricsPanel .mp-toggle{
+    background:none;
+    border:none;
+    color:var(--sage);
+    cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.65rem;
+    padding:0 4px;
+    line-height:1;
+  }
+  #metricsPanel .mp-body{
+    padding:8px 12px 10px;
+  }
+  #metricsPanel .mp-row{
+    display:flex;
+    justify-content:space-between;
+    padding:3px 0;
+    border-bottom:1px solid rgba(143,166,154,0.08);
+  }
+  #metricsPanel .mp-row:last-child{ border-bottom:none; }
+  #metricsPanel .mp-val{
+    color:var(--bone);
+    font-weight:500;
+  }
+  #metricsPanel .mp-section{
+    font-size:0.62rem;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--bioglow);
+    opacity:0.7;
+    padding:6px 0 2px;
+  }
+  #metricsPanel.collapsed .mp-body{ display:none; }
+  #mpLastUpdated{
+    font-size:0.6rem;
+    color:var(--sage);
+    opacity:0.5;
+    padding:0 12px 6px;
+    text-align:right;
+  }
+  #metricsPanel.collapsed #mpLastUpdated{ display:none; }
+
   /* ============ BACKEND HEALTH BADGE ============ */
   #backendHealth{
     position:fixed;
@@ -852,6 +918,37 @@ window.PRIMUS_CONFIG = CONFIG;
 
 </main>
 
+<!-- Metrics Dashboard Panel — polls /api/dashboard every 30s -->
+<div id="metricsPanel" role="complementary" aria-label="Backend metrics">
+  <div class="mp-header">
+    <span>PRIMUS METRICS</span>
+    <button class="mp-toggle" id="mpToggle" aria-expanded="true" title="Collapse panel">−</button>
+  </div>
+  <div class="mp-body" id="mpBody">
+    <div class="mp-section">System</div>
+    <div class="mp-row"><span>Uptime</span><span class="mp-val" id="mp-uptime">—</span></div>
+    <div class="mp-row"><span>Memory</span><span class="mp-val" id="mp-memory">—</span></div>
+
+    <div class="mp-section">Jobs</div>
+    <div class="mp-row"><span>Total</span><span class="mp-val" id="mp-jobs-total">—</span></div>
+    <div class="mp-row"><span>Completed</span><span class="mp-val" id="mp-jobs-completed">—</span></div>
+    <div class="mp-row"><span>Failed</span><span class="mp-val" id="mp-jobs-failed">—</span></div>
+
+    <div class="mp-section">AI</div>
+    <div class="mp-row"><span>Calls</span><span class="mp-val" id="mp-ai-calls">—</span></div>
+    <div class="mp-row"><span>Tokens</span><span class="mp-val" id="mp-ai-tokens">—</span></div>
+    <div class="mp-row"><span>Errors</span><span class="mp-val" id="mp-ai-errors">—</span></div>
+
+    <div class="mp-section">Telegram</div>
+    <div class="mp-row"><span>Received</span><span class="mp-val" id="mp-tg-recv">—</span></div>
+    <div class="mp-row"><span>Sent</span><span class="mp-val" id="mp-tg-sent">—</span></div>
+
+    <div class="mp-section">Logs</div>
+    <div class="mp-row"><span>Error lines</span><span class="mp-val" id="mp-errors">—</span></div>
+  </div>
+  <div id="mpLastUpdated">—</div>
+</div>
+
 <!-- Backend health badge — silently checks GET /health every 30 s.
      When offline (Render free tier sleeping), clicking opens the backend
      URL in a new tab which wakes the service. -->
@@ -910,6 +1007,84 @@ window.PRIMUS_CONFIG = CONFIG;
   // Run immediately, then every 30 s
   checkHealth();
   setInterval(checkHealth, 30000);
+
+  // ---------- Dashboard Metrics Panel ----------
+  var mpPanel = document.getElementById('metricsPanel');
+  var mpToggle = document.getElementById('mpToggle');
+  var mpLastUpdated = document.getElementById('mpLastUpdated');
+
+  // Collapse/expand
+  mpToggle.addEventListener('click', function(){
+    var collapsed = mpPanel.classList.toggle('collapsed');
+    mpToggle.textContent = collapsed ? '+' : '−';
+    mpToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    mpToggle.title = collapsed ? 'Expand panel' : 'Collapse panel';
+  });
+
+  function fmtUptime(s) {
+    s = Math.round(s);
+    var d = Math.floor(s / 86400);
+    var h = Math.floor((s % 86400) / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    var sec = s % 60;
+    if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h ' + m + 'm ' + sec + 's';
+    if (m > 0) return m + 'm ' + sec + 's';
+    return sec + 's';
+  }
+
+  function fmtNum(n) {
+    if (n === undefined || n === null) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  function setText(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  function fetchDashboardMetrics() {
+    var base = (window.PRIMUS_CONFIG && window.PRIMUS_CONFIG.BACKEND_URL)
+      ? window.PRIMUS_CONFIG.BACKEND_URL
+      : CONFIG.BACKEND_URL;
+
+    fetch(base + '/api/dashboard', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000)
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function(d) {
+      setText('mp-uptime',        fmtUptime(d.uptime_seconds || 0));
+      setText('mp-memory',        (d.memory_mb || 0) + ' MB');
+      setText('mp-jobs-total',    fmtNum((d.jobs || {}).total));
+      setText('mp-jobs-completed',fmtNum((d.jobs || {}).completed));
+      setText('mp-jobs-failed',   fmtNum((d.jobs || {}).failed));
+      setText('mp-ai-calls',      fmtNum((d.ai || {}).calls_total));
+      setText('mp-ai-tokens',     fmtNum((d.ai || {}).tokens_total));
+      setText('mp-ai-errors',     fmtNum((d.ai || {}).calls_error));
+      setText('mp-tg-recv',       fmtNum((d.telegram || {}).messages_received));
+      setText('mp-tg-sent',       fmtNum((d.telegram || {}).replies_sent));
+      setText('mp-errors',        fmtNum(d.errors || 0));
+
+      var now = new Date();
+      var hh = String(now.getHours()).padStart(2,'0');
+      var mm = String(now.getMinutes()).padStart(2,'0');
+      var ss = String(now.getSeconds()).padStart(2,'0');
+      mpLastUpdated.textContent = 'updated ' + hh + ':' + mm + ':' + ss;
+    })
+    .catch(function() {
+      mpLastUpdated.textContent = 'backend unreachable';
+    });
+  }
+
+  fetchDashboardMetrics();
+  setInterval(fetchDashboardMetrics, 30000);
 
   // ---------- Nav toggle ----------
   var navToggle = document.getElementById('navToggle');
