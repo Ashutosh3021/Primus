@@ -178,6 +178,11 @@ A FastAPI server exposes every backend capability over HTTP so the Wizard and Le
 | `/api/cron` | GET | Enabled cron schedules |
 | `/api/capabilities` | GET | Provider and desktop capability flags |
 | `/api/recovery` | GET | Circuit breaker and failure state |
+| `/api/dashboard` | GET | Aggregated metrics panel (uptime, jobs, AI, Telegram, errors, memory) |
+| `/api/git-learning/scan` | POST | Scan a repo and extract structured summary into Project memory |
+| `/api/git-learning/jobs` | GET | All git_learning jobs from the job store |
+| `/api/automation/run` | POST | Execute a named built-in or inline multi-step workflow |
+| `/api/automation/workflows` | GET | List all available built-in automation workflows |
 
 Interactive docs available at `/api/docs` (Swagger) and `/api/redoc`.
 
@@ -210,9 +215,35 @@ The logging layer redacts any resolved secret value before it reaches any log fi
 | `DiagnosticsManager` | Startup timeline (which modules loaded), system info, uptime |
 | `RecoveryManager` | Failure recording, circuit breaker per component, exponential-backoff retry |
 
+### Git Learning
+
+Scans a local git repository and extracts a structured summary written directly into Project memory:
+
+- Repository purpose (first paragraph of README)
+- Programming languages in use (by file extension frequency)
+- Frameworks detected (from `requirements.txt`, `package.json`, etc.)
+- Architectural pattern (inferred from folder/file names)
+- Open tasks (TODO / FIXME / HACK comments across source files)
+- Recent commit messages (last 10 via `git log`)
+- Current branch
+
+Output is stored as `repo.<name>.summary`, `repo.<name>.languages`, `repo.<name>.frameworks`, and `repo.<name>.open_tasks` in Project memory, making it immediately available to the Context Engine.
+
+A `git_learning` job type is registered at startup so scans can be scheduled via the cron system.
+
 ---
 
-### Wizard Dashboard
+### Automation Engine
+
+The Automation Engine chains desktop tools into multi-step workflows without blocking the event loop:
+
+- **Sequential execution** — steps run in order; output of step N available as `{step_N}` in later params
+- **Stop-on-failure** — optionally halts the workflow at the first failed step
+- **Built-in workflows** — `git_status`, `python_env_info`, `project_health` ship out of the box
+- **Inline workflows** — define any workflow as JSON in the request body
+- **Full audit trail** — per-step duration, success/failure, and output returned in the response
+
+---
 
 A browser-based setup flow that walks through every configuration option one question at a time.
 
@@ -340,9 +371,10 @@ Primus/
 │   ├── providers/              # One file per AI provider
 │   ├── messaging/              # One file per platform
 │   ├── tools/                  # Tool interface + web search
-│   ├── desktop/                # Desktop connector + local tools
+│   ├── desktop/                # Desktop connector + local tools + automation engine
 │   ├── jobs/                   # Job manager + worker loop
 │   ├── context_engine/         # Scheduler + notification engine
+│   ├── git-learning/           # Repo → structured summary extraction + job registration
 │   └── router/                 # AI request router
 │
 ├── pages/
@@ -375,10 +407,9 @@ python test/verify_project.py
 
 ```
 ✓ All checks passed. Project is production-ready.
-171 / 171
 ```
 
-Checks cover: folder structure, all Python imports, config validity, provider registry, messaging platforms, tool registry, memory and database, jobs and scheduler, desktop agent, health/metrics/diagnostics/recovery, every HTTP endpoint, database initialisation, deployment files, code quality (no TODOs, no hardcoded keys), and frontend-backend integration.
+Checks cover: folder structure, all Python imports, config validity, provider registry, messaging platforms, tool registry, memory and database, jobs and scheduler, desktop agent, health/metrics/diagnostics/recovery, every HTTP endpoint (including `/api/dashboard`, `/api/git-learning/*`, `/api/automation/*`), database initialisation, deployment files, code quality (no TODOs, no hardcoded keys), git-learning module, automation engine, and frontend-backend integration.
 
 ---
 
@@ -394,9 +425,10 @@ Checks cover: folder structure, all Python imports, config validity, provider re
 | 5 — Messaging | ✅ Complete | Telegram integration, normalization layer |
 | 6 — Wizard | ✅ Complete | Full setup flow, backend integration |
 | 7 — Production Quality | ✅ Complete | Health, metrics, diagnostics, recovery, HTTP API |
-| 8 — Git Learning | 🔜 Planned | Repo → structured memory extraction |
+| 8 — Git Learning | ✅ Complete | Repo → structured memory extraction, job registration |
 | 9 — Context Engine v2 | 🔜 Planned | Vector-based relevance selection |
 | 10 — Desktop Agent Auth | 🔜 Planned | Device pairing and token-scoped tool access |
+| 10a — Automation Engine | ✅ Complete | Multi-step desktop tool workflows with template variables |
 | 11 — More Platforms | 🔜 Planned | Discord, WhatsApp, Email, Google Chat, SMS |
 | 12 — Browser Automation | 🔜 Planned | Headless browsing as a first-class tool |
 

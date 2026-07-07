@@ -1004,6 +1004,169 @@ async def dashboard_metrics() -> Dict[str, Any]:
     }
 
 
+@app.post("/api/git-learning/scan", tags=["git-learning"])
+async def git_learning_scan(payload: dict = None) -> Dict[str, Any]:
+    """
+    Scan a local git repository and extract a structured summary.
+    Optionally saves the summary into the user's Project memory.
+
+    Request body (all optional):
+        { "repo_path": ".", "user_id": "default", "save_to_memory": true }
+    """
+    _require_startup()
+    body = payload or {}
+    repo_path = body.get("repo_path", ".")
+    user_id = body.get("user_id", "default")
+    save = body.get("save_to_memory", True)
+
+    try:
+        import importlib
+        git_learning_mod = importlib.import_module("backend.git-learning")
+        GitLearner = git_learning_mod.GitLearner
+        from backend.db import MemoryStore
+
+        learner = GitLearner(repo_path)
+        summary = await learner.learn()
+
+        if save and not summary.error:
+            store = MemoryStore()
+            await learner.save_to_memory(store, user_id=user_id)
+
+        return {
+            "name": summary.name,
+            "path": summary.path,
+            "purpose": summary.purpose,
+            "languages": summary.languages,
+            "frameworks": summary.frameworks,
+            "architecture": summary.architecture,
+            "branch": summary.branch,
+            "open_tasks": summary.open_tasks,
+            "recent_commits": summary.recent_commits,
+            "summary_text": summary.as_text(),
+            "saved_to_memory": save and not summary.error,
+            "error": summary.error,
+        }
+    except Exception as exc:
+        logger.error(f"Git learning scan error: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/git-learning/jobs", tags=["git-learning"])
+async def git_learning_jobs() -> Dict[str, Any]:
+    """Return all git_learning jobs from the job store."""
+    _require_startup()
+    from backend.db import JobStore
+    store = JobStore()
+    jobs = await store.get_all()
+    gl_jobs = [j for j in jobs if j.name == "git_learning"]
+    return {
+        "jobs": [
+            {
+                "job_id": j.job_id,
+                "status": j.status.value,
+                "params": j.params,
+                "result": j.result,
+                "error": j.error,
+                "created_at": j.created_at.isoformat() if j.created_at else None,
+                "completed_at": j.completed_at.isoformat() if j.completed_at else None,
+            }
+            for j in gl_jobs
+        ],
+        "count": len(gl_jobs),
+    }
+
+
+@app.post("/api/automation/run", tags=["automation"])
+async def automation_run(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Execute an automation workflow using enabled desktop tools.
+
+    Request body — either a named built-in or an inline workflow::
+
+        { "workflow": "git_status" }                     # built-in by name
+        { "workflow": { "name": "x", "steps": [...] } }  # inline definition
+
+    Each step::
+
+        { "tool": "terminal", "params": { "command": "ls" }, "description": "list files" }
+
+    Supports ``{step_N}`` template variables in params (0-based step index).
+    """
+    _require_startup()
+
+    from backend.desktop.automation import AutomationEngine, get_builtin_workflow
+    from backend.api import _tool_manager  # type: ignore
+
+    if _tool_manager is None:
+        raise HTTPException(status_code=503, detail="Tool manager not initialised")
+
+    workflow_input = payload.get("workflow")
+    if workflow_input is None:
+        raise HTTPException(status_code=400, detail="'workflow' field required")
+
+    try:
+        if isinstance(workflow_input, str):
+            workflow = get_builtin_workflow(workflow_input)
+            if workflow is None:
+                from backend.desktop.automation import BUILTIN_WORKFLOWS
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Unknown built-in workflow {workflow_input!r}. "
+                           f"Available: {list(BUILTIN_WORKFLOWS.keys())}",
+                )
+        else:
+            workflow = AutomationEngine.from_dict(workflow_input)
+
+        engine = AutomationEngine(_tool_manager)
+        result = await engine.run(workflow)
+
+        return {
+            "name": result.name,
+            "success": result.success,
+            "stopped_at": result.stopped_at,
+            "total_duration_ms": result.total_duration_ms,
+            "summary": result.as_text(),
+            "steps": [
+                {
+                    "step_index": s.step_index,
+                    "tool": s.tool,
+                    "success": s.success,
+                    "content": s.content,
+                    "error": s.error,
+                    "duration_ms": s.duration_ms,
+                }
+                for s in result.steps
+            ],
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Automation run error: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/automation/workflows", tags=["automation"])
+async def automation_list_workflows() -> Dict[str, Any]:
+    """Return all available built-in automation workflows."""
+    from backend.desktop.automation import BUILTIN_WORKFLOWS, AutomationEngine
+    return {
+        "workflows": [
+            {
+                "name": name,
+                "description": raw.get("description", ""),
+                "step_count": len(raw.get("steps", [])),
+                "stop_on_failure": raw.get("stop_on_failure", True),
+                "steps": [
+                    {"tool": s["tool"], "description": s.get("description", "")}
+                    for s in raw.get("steps", [])
+                ],
+            }
+            for name, raw in BUILTIN_WORKFLOWS.items()
+        ],
+        "count": len(BUILTIN_WORKFLOWS),
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PART 5 – Error handlers
 # ─────────────────────────────────────────────────────────────────────────────

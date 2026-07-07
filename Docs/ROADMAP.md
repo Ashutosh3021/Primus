@@ -84,11 +84,15 @@ Every phase ends with something runnable and demoable, not just code that compil
 
 ---
 
-## Phase 8 — Git Learning
-**Depends on:** Phase 3 (writes into Long-term/Knowledge Memory)
-- Repo → structured summary (stack, architecture, purpose, open tasks)
-- Feeds Knowledge Memory layer
-- **Milestone:** pointing the assistant at a real repo (e.g. PrepIQ) produces an accurate one-paragraph summary of stack and purpose, stored in memory
+## Phase 8 — Git Learning ✅
+**Depends on:** Phase 3 (writes into Project Memory)
+- Repo scanner: language detection by extension frequency, framework detection from dependency files
+- Architecture inference from folder/file names; purpose extraction from README first paragraph
+- Open-task extraction (TODO/FIXME/HACK comments); recent commit messages via `git log`
+- All entries persisted as `repo.<name>.*` keys in Project Memory layer
+- `git_learning` job type registered at startup; `POST /api/git-learning/scan` for on-demand scans
+- All repo I/O via `asyncio.to_thread` — never blocks the event loop
+- **Milestone:** ✅ `POST /api/git-learning/scan {"repo_path": "."}` returns accurate languages (`Python, HTML, JavaScript`), frameworks (`FastAPI, Pydantic, Uvicorn`), architecture (`Serverless`), and saves structured entries to Project Memory
 
 ---
 
@@ -100,12 +104,24 @@ Every phase ends with something runnable and demoable, not just code that compil
 
 ---
 
-## Phase 10 — Desktop Agent
-**Depends on:** Phase 4 (extends the Tool Router with local-only tools), Phase 2a secrets (device token storage)
-- Pairing flow: backend generates a code, agent exchanges it for a device token on first run (§10a) — this ships *before* any local tool is enabled, not after
+## Phase 10 — Desktop Agent (Partial) + Automation Engine ✅
+**Depends on:** Phase 4 (extends the Tool Router with local-only tools)
+
+Desktop tools (terminal, filesystem, git, python, ollama, docker) are fully implemented and self-registering. The `DesktopConnector` detects available capabilities at startup via `_detect_capabilities()`.
+
+**Automation Engine** (✅ complete) — chains desktop tools into multi-step workflows:
+- Sequential step execution with `{step_N}` template variables across steps
+- `stop_on_failure` flag, per-step duration tracking, full audit trail in response
+- Built-in workflows: `git_status`, `python_env_info`, `project_health`
+- `POST /api/automation/run` executes named or inline workflows
+- `GET /api/automation/workflows` lists available built-ins
+- Serialise/deserialise via `AutomationEngine.to_dict()` / `from_dict()`
+
+**Desktop Agent Auth** (🔜 planned) — device pairing and token-scoped tool access:
+- Pairing flow: backend generates a code, agent exchanges it for a device token on first run (§10a)
 - Local agent process: terminal, Docker, local Git, Ollama, local browser
 - Graceful degradation when desktop is offline
-- **Milestone:** the same assistant answers a "run this script and tell me the output" request when desktop is on, and gracefully declines with an explanation when it's off. An unpaired process attempting to connect as a desktop agent is rejected
+- **Remaining milestone:** the same assistant answers a "run this script and tell me the output" request when desktop is on, and gracefully declines with an explanation when it's off. An unpaired process attempting to connect as a desktop agent is rejected
 
 ---
 

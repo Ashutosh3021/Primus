@@ -35,6 +35,13 @@ from backend.health import get_health_checker
 from backend.recovery import get_recovery_manager
 from backend.exceptions import ConfigNotFoundError
 
+# Register optional job types at import time (safe — no I/O, just registry writes)
+try:
+    import importlib
+    importlib.import_module("backend.git-learning")  # registers git_learning job
+except Exception:
+    pass  # git-learning is optional; don't break startup if it fails to import
+
 logger = get_errors_logger(__name__)
 _running = False
 
@@ -62,11 +69,11 @@ async def startup_async() -> Config:
     try:
         config = load_config()
         diag.mark_config_loaded()
-        logger.info(f"Configuration loaded. Version: {config.version}")
+        logger.info(f"Configuration loaded | version={config.version}")
     except ConfigNotFoundError:
-        logger.warning(
-            "[WARNING] config.json not found — server starting without "
-            "configuration. Complete the Wizard to activate modules."
+        logger.info(
+            "config.json not found — server starting unconfigured. "
+            "Open the Wizard to create a configuration."
         )
     except Exception as exc:
         logger.error(f"Failed to load configuration: {exc}", exc_info=True)

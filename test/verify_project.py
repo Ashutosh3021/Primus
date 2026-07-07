@@ -91,6 +91,8 @@ def verify_structure() -> None:
         "backend/tools/web_search.py",
         "backend/router/__init__.py",
         "backend/router/ai_router.py",
+        "backend/git-learning/__init__.py",
+        "backend/desktop/automation.py",
         "pages/Dashbord/index.html",
         "pages/Wizard/index.html",
         "pages/ledger/index.html",
@@ -169,6 +171,7 @@ def verify_imports() -> None:
         "backend.api",
         "backend.server",
         "backend.startup",
+        "backend.desktop.automation",
     ]
     for mod in modules_to_import:
         try:
@@ -178,6 +181,15 @@ def verify_imports() -> None:
             check(f"import {mod}", False, str(exc))
         except Exception as exc:
             warn(f"import {mod}", f"non-import error: {exc}")
+
+    # Hyphenated module — must use importlib directly
+    try:
+        importlib.import_module("backend.git-learning")
+        check("import backend.git-learning (via importlib)", True)
+    except ImportError as exc:
+        check("import backend.git-learning (via importlib)", False, str(exc))
+    except Exception as exc:
+        warn("import backend.git-learning (via importlib)", f"non-import error: {exc}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -343,6 +355,11 @@ def verify_server_endpoints() -> None:
             "/api/cron",
             "/api/capabilities",
             "/api/recovery",
+            "/api/dashboard",
+            "/api/git-learning/scan",
+            "/api/git-learning/jobs",
+            "/api/automation/run",
+            "/api/automation/workflows",
         ]
         for route in expected_routes:
             check(f"Route '{route}' registered", route in routes)
@@ -351,7 +368,103 @@ def verify_server_endpoints() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 12. Database (async)
+# 12. Git Learning module
+# ─────────────────────────────────────────────────────────────────────────────
+async def verify_git_learning() -> None:
+    print("\n── Git Learning ─────────────────────────────────────────────────────────")
+    try:
+        import importlib
+        gl = importlib.import_module("backend.git-learning")
+        check("git-learning module importable", True)
+        check("GitLearner class present",    hasattr(gl, "GitLearner"))
+        check("RepoSummary class present",   hasattr(gl, "RepoSummary"))
+        check("register_git_learning_job present", hasattr(gl, "register_git_learning_job"))
+
+        # Verify git_learning job was registered
+        from backend.jobs import get_job_class
+        check("'git_learning' job registered", get_job_class("git_learning") is not None)
+
+        # Run a quick scan of the project itself
+        learner = gl.GitLearner(ROOT)
+        summary = await learner.learn()
+        check("GitLearner.learn() returns RepoSummary", hasattr(summary, "name"))
+        check("Scan detected languages",     len(summary.languages) > 0,
+              f"languages={summary.languages}")
+        check("Scan detected frameworks",    len(summary.frameworks) > 0,
+              f"frameworks={summary.frameworks}")
+        check("Scan produced summary text",  len(summary.as_text()) > 20)
+        check("No scan error",               summary.error is None,
+              summary.error or "")
+    except Exception as exc:
+        check("Git Learning module", False, str(exc))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 13. Automation Engine
+# ─────────────────────────────────────────────────────────────────────────────
+async def verify_automation() -> None:
+    print("\n── Automation Engine ────────────────────────────────────────────────────")
+    try:
+        from backend.desktop.automation import (
+            AutomationEngine, Workflow, WorkflowStep,
+            get_builtin_workflow, BUILTIN_WORKFLOWS,
+        )
+        check("AutomationEngine importable", True)
+        check("Workflow importable",         True)
+        check("WorkflowStep importable",     True)
+        check("BUILTIN_WORKFLOWS non-empty", len(BUILTIN_WORKFLOWS) > 0,
+              f"count={len(BUILTIN_WORKFLOWS)}")
+
+        for name in ("git_status", "python_env_info", "project_health"):
+            wf = get_builtin_workflow(name)
+            check(f"Built-in workflow '{name}' exists",
+                  wf is not None and len(wf.steps) > 0)
+
+        # Serialise / deserialise round-trip
+        wf = get_builtin_workflow("git_status")
+        raw = AutomationEngine.to_dict(wf)
+        wf2 = AutomationEngine.from_dict(raw)
+        check("Workflow serialise/deserialise round-trip",
+              wf2.name == wf.name and len(wf2.steps) == len(wf.steps))
+
+        # Template expansion
+        from backend.desktop.automation import _expand_templates, StepResult
+        sr = StepResult(step_index=0, tool="terminal", success=True, content="hello")
+        expanded = _expand_templates("output: {step_0}", [sr])
+        check("Template expansion {step_0} works", expanded == "output: hello",
+              f"got: {expanded!r}")
+    except Exception as exc:
+        check("Automation Engine", False, str(exc))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 14. Extended metrics & DB helpers
+# ─────────────────────────────────────────────────────────────────────────────
+async def verify_extended_helpers() -> None:
+    print("\n── Extended Helpers ─────────────────────────────────────────────────────")
+    try:
+        from backend.metrics import get_metrics_registry
+        reg = get_metrics_registry()
+        reg.increment("test.counter", {"label": "a"}, 5)
+        reg.increment("test.counter", {"label": "b"}, 3)
+        total = reg.get_counter("test.counter")
+        check("MetricsRegistry.get_counter sums labels", total >= 8,
+              f"got {total}")
+    except Exception as exc:
+        check("MetricsRegistry.get_counter", False, str(exc))
+
+    try:
+        from backend.db import JobStore
+        store = JobStore()
+        counts = await store.get_counts_by_status()
+        check("JobStore.get_counts_by_status returns dict",
+              isinstance(counts, dict) and "pending" in counts)
+    except Exception as exc:
+        check("JobStore.get_counts_by_status", False, str(exc))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 15. Database (async)
 # ─────────────────────────────────────────────────────────────────────────────
 async def verify_database() -> None:
     print("\n── Database ─────────────────────────────────────────────────────────────")
@@ -366,7 +479,7 @@ async def verify_database() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 13. Render deployment files
+# 16. Render deployment files
 # ─────────────────────────────────────────────────────────────────────────────
 def verify_deployment() -> None:
     print("\n── Deployment ───────────────────────────────────────────────────────────")
@@ -397,7 +510,7 @@ def verify_deployment() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 14. Dead code / unused imports (basic checks)
+# 17. Dead code / unused imports (basic checks)
 # ─────────────────────────────────────────────────────────────────────────────
 def verify_dead_code() -> None:
     print("\n── Code Quality ─────────────────────────────────────────────────────────")
@@ -420,7 +533,7 @@ def verify_dead_code() -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 15. Frontend pages contain expected endpoints
+# 18. Frontend pages contain expected endpoints
 # ─────────────────────────────────────────────────────────────────────────────
 def verify_frontend_integration() -> None:
     print("\n── Frontend Integration ─────────────────────────────────────────────────")
@@ -454,6 +567,9 @@ async def main() -> None:
     verify_desktop()
     verify_production_features()
     verify_server_endpoints()
+    await verify_git_learning()
+    await verify_automation()
+    await verify_extended_helpers()
     await verify_database()
     verify_deployment()
     verify_dead_code()

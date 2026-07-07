@@ -40,6 +40,9 @@ The server starts at http://localhost:8000.
 |---|---|
 | `http://localhost:8000/health` | Quick health check |
 | `http://localhost:8000/api/status` | Full status (Ledger uses this) |
+| `http://localhost:8000/api/dashboard` | Aggregated metrics (uptime, jobs, AI, Telegram, errors, memory) |
+| `http://localhost:8000/api/git-learning/scan` | Scan repo and save to Project memory |
+| `http://localhost:8000/api/automation/workflows` | List built-in automation workflows |
 | `http://localhost:8000/api/docs` | Interactive API docs (Swagger) |
 | `http://localhost:8000/api/redoc` | API docs (ReDoc) |
 
@@ -47,9 +50,9 @@ The server starts at http://localhost:8000.
 
 The HTML pages are static files. Open them directly in a browser:
 
-- `pages/Wizard/wizard.html` — first-time setup
+- `pages/Wizard/index.html` — first-time setup
 - `pages/ledger/index.html` — live dashboard (backend must be running)
-- `pages/Dashbord/index.html` — promotional / marketing page
+- `pages/Dashbord/index.html` — promotional / marketing page with metrics panel
 
 The Wizard and Ledger connect to `window.location.origin` by default.
 Set `window.PRIMUS_API_URL` before the page scripts run if the backend

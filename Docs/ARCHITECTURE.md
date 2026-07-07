@@ -280,13 +280,19 @@ Storage principle: **store conclusions, not raw data.**
 
 Instead of embedding raw source code, this module extracts:
 
-- Skills and frameworks in use
-- Programming languages
-- Architectural pattern (monolith, microservices, etc.)
-- Current open tasks (from TODOs, issue trackers, commit messages)
-- Repository purpose (from README + structure)
+- Repository purpose (first paragraph of README)
+- Programming languages in use (by file extension frequency)
+- Frameworks and key dependencies (from `requirements.txt`, `package.json`, etc.)
+- Architectural pattern (inferred from folder and file names)
+- Open tasks (TODO / FIXME / HACK comments across source files)
+- Recent commit messages (last 10 via `git log`)
+- Current branch name
 
-Output feeds directly into **Knowledge Memory** as a structured summary, not raw text.
+Output is written into **Project Memory** as structured key/value entries (`repo.<name>.summary`, `repo.<name>.languages`, `repo.<name>.frameworks`, `repo.<name>.open_tasks`), not raw text. This makes the summaries immediately available to the Context Engine for selective prompt injection.
+
+A `git_learning` job type is registered at startup so scans can be scheduled via the cron system (`POST /api/jobs` with `name: "git_learning"` and `params.repo_path`). Scans can also be triggered directly via `POST /api/git-learning/scan`.
+
+All repo I/O runs via `asyncio.to_thread` so it never blocks the event loop.
 
 ---
 
@@ -376,6 +382,23 @@ Desktop ON  → Tool Router includes: Terminal, Docker, Local Git, Ollama, Local
 Desktop OFF → Tool Router includes: Cloud-only tools (Web Search, hosted Memory, hosted Browser)
 ```
 
+### 11a. Automation Engine
+
+Built on top of the desktop tool set, the Automation Engine chains tools into multi-step workflows without blocking the event loop:
+
+```
+POST /api/automation/run  { "workflow": "git_status" }
+   ↓
+AutomationEngine.run(workflow)
+   ↓
+Step 0: GitTool("status")      → output saved as step_0 result
+Step 1: GitTool("log -5")      → can reference {step_0} in params
+   ↓
+WorkflowResult { success, steps[], total_duration_ms }
+```
+
+Workflows are either built-in by name (`git_status`, `python_env_info`, `project_health`) or defined inline as JSON. Serialise/deserialise via `AutomationEngine.to_dict()` / `from_dict()` for storage in the job system.
+
 ### 10a. Desktop Agent Authentication
 
 The Desktop Agent runs terminal and Docker access on the user's real machine — it must prove it's actually the user's device before the cloud backend grants it those tools. Without this, anything that can reach the backend's network endpoint could impersonate a desktop agent and get local code execution.
@@ -401,23 +424,25 @@ Device tokens are revocable individually (lost laptop, compromised machine) with
 ## 12. Module Boundaries (for repo structure)
 
 ```
-/promotional-dashboard      # static site, no backend dependency
-/wizard-dashboard            # form flow → writes config.json + writes secrets via secrets client
+/promotional-dashboard      # static marketing site (pages/Dashbord/index.html) — connects to /health + /api/dashboard
+/wizard-dashboard           # form flow → writes config.json + writes secrets via secrets client (pages/Wizard/index.html)
+/ledger-dashboard           # live metrics dashboard (pages/ledger/index.html)
 /backend
   /providers                # one file per AI provider, all implement AIProvider + capabilities
   /messaging                # one file per platform, all normalize to common shape
   /memory                   # short-term / long-term / context / knowledge
   /tools                    # one file per tool, all implement Tool interface, self-register (§8a)
   /jobs                     # scheduler + worker + checkpointing
-  /context-engine            # relevance selection logic
-  /git-learning              # repo → structured summary extraction
+  /context_engine           # relevance selection logic + cron scheduler
+  /git-learning             # repo → structured summary extraction, job registration
+  /desktop                  # DesktopConnector + local tools + AutomationEngine
   /router                   # provider selection logic, capability checks
   /secrets                  # OS keyring / .env resolution, secret_ref lookups (§2a)
-  /logging                  # structured logger, redaction rules (§13)
-  /db                        # schema, migrations (§14)
-  /api                       # internal service layer all modules call through (§15)
-  config.schema.json         # validates config.json shape + version field
-/desktop-agent                # local-only process, pairs via device token (§10a)
+  /logger.py                # structured logger, redaction rules (§13)
+  /db                       # schema, async SQLite stores
+  /api                      # internal service layer all modules call through (§15)
+  server.py                 # FastAPI HTTP server — all endpoints
+  startup.py                # async startup / shutdown sequence
 ```
 
 Each top-level backend folder is independently testable and has no reverse dependency on the folders above it in the build order (see ROADMAP.md).

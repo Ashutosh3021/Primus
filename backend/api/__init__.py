@@ -70,31 +70,42 @@ def initialize_router(config: Config) -> None:
 
     Transitions:
       secret present  → RUNNING
-      secret missing  → WAITING_FOR_CONFIG (startup continues)
-      other error     → re-raised (unexpected, must surface)
+      secret missing  → WAITING_FOR_CONFIG (startup continues silently)
+      other error     → WAITING_FOR_CONFIG + ERROR log (keyring I/O failure etc.)
     """
     global _router
     try:
         api_key = get_secret(config.provider.secret_ref)
         _router = AIRouter(config.provider.name, api_key, config.provider.model)
         _registry.set_running("router")
-        logger.info("AI router initialised successfully")
-    except SecretNotFoundError as exc:
+        logger.info(
+            f"AI router initialised | provider={config.provider.name} "
+            f"model={config.provider.model}"
+        )
+    except SecretNotFoundError:
+        # Expected on first deploy or before Wizard is run — not an error.
         _router = None
         _registry.set_waiting("router", config.provider.secret_ref)
-        logger.warning(
-            f"[WARNING] AI Router | Waiting for configuration | "
-            f"Missing secret: {config.provider.secret_ref}"
+        logger.info(
+            f"AI router waiting for configuration | "
+            f"secret_ref={config.provider.secret_ref!r} not yet stored — "
+            "run the Wizard to activate"
         )
-    except Exception as exc:
-        # Any unexpected error (e.g. keyring I/O failure) is treated as a
-        # missing secret so a broken keyring cannot prevent startup.
+    except ConfigInvalidError as exc:
+        # Unknown provider name — this IS a real config error.
         _router = None
         _registry.set_waiting("router", config.provider.secret_ref)
         logger.error(
-            f"[WARNING] AI Router | Waiting for configuration | "
-            f"Unexpected error reading secret "
-            f"{config.provider.secret_ref!r}: {exc}"
+            f"AI router config error | provider={config.provider.name!r} | {exc}"
+        )
+    except Exception as exc:
+        # Unexpected keyring / I/O failure — log as error but don't crash.
+        _router = None
+        _registry.set_waiting("router", config.provider.secret_ref)
+        logger.error(
+            f"AI router failed to initialise (unexpected error) | "
+            f"secret_ref={config.provider.secret_ref!r} | {exc}",
+            exc_info=True,
         )
 
 
@@ -136,8 +147,8 @@ def initialize_messaging(config: Config) -> None:
     Initialise every configured messaging platform.
 
     Each platform is evaluated independently:
-      not enabled          → DISABLED
-      enabled, no secret   → WAITING_FOR_CONFIG
+      not enabled          → DISABLED  (silent — no log noise)
+      enabled, no secret   → WAITING_FOR_CONFIG  (info log)
       enabled, secret ok   → RUNNING
     """
     global _messaging_platforms
@@ -151,16 +162,16 @@ def initialize_messaging(config: Config) -> None:
     for name, cls in MESSAGING_PLATFORMS.items():
         platform_config: dict = dict(getattr(config.messaging, name, {}) or {})
 
-        logger.info(
-            f"[TG_INIT] Evaluating platform={name} | "
-            f"enabled={platform_config.get('enabled', False)} | "
-            f"has_secret_ref={'secret_ref' in platform_config}"
-        )
-
         if not platform_config.get("enabled", False):
             _registry.set_disabled(name)
+            # Disabled platforms are the normal case — log at DEBUG level only
             logger.info(f"[TG_INIT] {name} → DISABLED (not enabled in config)")
             continue
+
+        logger.info(
+            f"[TG_INIT] Evaluating platform={name} | "
+            f"has_secret_ref={'secret_ref' in platform_config}"
+        )
 
         secret_ref: str | None = platform_config.get("secret_ref")
         if secret_ref:
@@ -173,23 +184,23 @@ def initialize_messaging(config: Config) -> None:
                 )
             except SecretNotFoundError:
                 _registry.set_waiting(name, secret_ref)
-                logger.warning(
+                logger.info(
                     f"[TG_INIT] {name} → WAITING_FOR_CONFIG | "
-                    f"Missing secret: {secret_ref}"
+                    f"secret_ref={secret_ref!r} not yet stored"
                 )
                 continue
             except Exception as exc:
-                # Any other error (e.g. keyring I/O failure) is treated as a
-                # missing secret so one broken platform cannot block others.
+                # Unexpected keyring / I/O failure.
                 _registry.set_waiting(name, secret_ref)
                 logger.error(
                     f"[TG_INIT] {name} → WAITING_FOR_CONFIG | "
-                    f"Unexpected error reading secret {secret_ref!r}: {exc}"
+                    f"Unexpected error reading secret {secret_ref!r}: {exc}",
+                    exc_info=True,
                 )
                 continue
         else:
             logger.info(
-                f"[TG_INIT] {name} — no secret_ref in config, "
+                f"[TG_INIT] {name} — no secret_ref, "
                 "using bot_token directly from platform_config"
             )
 
@@ -198,7 +209,7 @@ def initialize_messaging(config: Config) -> None:
             platform.set_message_handler(_handle_incoming_message)
             _messaging_platforms[name] = platform
             _registry.set_running(name)
-            logger.info(f"[TG_INIT] {name} → RUNNING (platform initialised)")
+            logger.info(f"[TG_INIT] {name} → RUNNING")
         except Exception:
             raise
 
