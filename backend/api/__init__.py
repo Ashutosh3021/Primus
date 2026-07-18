@@ -38,6 +38,7 @@ from backend.persona import (
     get_persona_manager,
     get_active_persona_text,
     initialize_persona,
+    PERSONA_PRESETS,
 )
 from backend.skills import SkillManager, get_skill_manager, initialize_skills
 from backend.tools import ToolManager
@@ -877,9 +878,10 @@ def handle_persona_command(text: str) -> tuple[bool, dict]:
     """
     Parse and execute persona commands.
 
-      /persona                 list presets + show active persona
-      /persona <name>          switch active persona (default|critic|architect|analyst)
-      /persona custom <text>   set a custom persona and activate it
+      /persona                  list presets + show active persona
+      /persona <name>           switch active persona (a built-in preset)
+      /persona custom <text>    set a custom persona and activate it (legacy form)
+      /persona <custom prompt>  any non-preset text becomes the custom persona
 
     Returns (matched, response_dict).  When matched, the caller must NOT treat
     the message as a normal chat.
@@ -905,6 +907,8 @@ def handle_persona_command(text: str) -> tuple[bool, dict]:
         })
 
     arg = parts[1].strip()
+
+    # Legacy form: "/persona custom <text>".
     if arg.lower().startswith("custom"):
         custom_text = arg[len("custom"):].strip()
         if not custom_text:
@@ -922,17 +926,30 @@ def handle_persona_command(text: str) -> tuple[bool, dict]:
             "content": f"Persona set to custom: {preview}",
         })
 
-    try:
-        mgr.set_active(arg)
-    except Exception as exc:
+    # Known preset → switch to it.
+    if arg in PERSONA_PRESETS:
+        try:
+            mgr.set_active(arg)
+        except Exception as exc:
+            return (True, {
+                "command": "persona", "ok": False, "error": str(exc),
+                "presets": mgr.list_personas()["presets"],
+            })
         return (True, {
-            "command": "persona", "ok": False, "error": str(exc),
-            "presets": mgr.list_personas()["presets"],
+            "command": "persona", "ok": True,
+            "active": mgr.get_active_name(),
+            "content": f"Persona switched → {mgr.get_active_name()}",
         })
+
+    # Anything else → treat the whole remainder as a custom persona prompt.
+    try:
+        mgr.set_custom(arg)
+    except Exception as exc:
+        return (True, {"command": "persona", "ok": False, "error": str(exc)})
+    preview = arg[:80] + ("…" if len(arg) > 80 else "")
     return (True, {
-        "command": "persona", "ok": True,
-        "active": mgr.get_active_name(),
-        "content": f"Persona switched → {mgr.get_active_name()}",
+        "command": "persona", "ok": True, "active": "custom",
+        "content": f"Persona set to custom: {preview}",
     })
 
 

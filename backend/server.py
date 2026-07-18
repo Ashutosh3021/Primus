@@ -718,7 +718,9 @@ async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
       /provider <name>     switch active provider (restores its model)
       /model <model>       change current provider's model (strict validation)
       /auto                toggle Auto Mode
-      /persona <name>      switch global persona (critic|architect|analyst|custom)
+      /persona <name>      switch global persona (default|developer|architect|
+                            critic|devils-advocate|teacher|researcher|minimal|
+                            explain|analyst|custom|<any custom prompt>)
       /compact             hard-compact the active session
       /skill-maker <n>::<i>  create a persistent, invocable skill
       /<skillname>         invoke a stored skill
@@ -866,15 +868,26 @@ async def delete_context_memory(
 
 @app.get("/api/personas", tags=["persona"])
 async def list_personas_endpoint() -> Dict[str, Any]:
-    """List the available personas and the currently active one (global)."""
+    """
+    List the available personas and the currently active one (global).
+
+    Returns the active preset name, the full preset list (with display names
+    for the Dashboard selector), the five-field breakdown of the active persona
+    (``active_detail``), and the current custom persona text (``custom_text``)
+    so the Custom Persona editor can be pre-filled.
+    """
     _require_startup()
     from backend.api import get_persona_manager
 
-    info = get_persona_manager().list_personas()
+    mgr = get_persona_manager()
+    info = mgr.list_personas()
     return {
         "active": info["active"],
         "presets": info["presets"],
+        "preset_displays": info.get("preset_displays", {}),
         "custom_set": info["custom_set"],
+        "active_detail": mgr.get_active_detail(),
+        "custom_text": mgr.get_custom_text(),
     }
 
 

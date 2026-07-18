@@ -57,6 +57,11 @@ async def main():
     orig_persist = api._persist_state
     api.route_chat = fake_route_chat
 
+    # Don't mutate config.json when the test switches personas.
+    import backend.persona as _pmod
+    orig_save_persona = _pmod.save_persona_config
+    _pmod.save_persona_config = lambda *a, **k: None
+
     try:
         # ── 1. Commands route without crashing / persisting ──────────────────
         r = await handle_message("/provider", "u", "c")
@@ -83,10 +88,25 @@ async def main():
         r = await handle_message("/persona analyst", "u", "c")
         assert r["command"] == "persona" and r["ok"] is True, r
         assert get_persona_manager().get_active_name() == "analyst"
-        assert get_active_persona_text() == PERSONA_PRESETS["analyst"]
+        assert "ANALYST" in get_active_persona_text()
         prompt = await build_prompt("u", "c", "hi")
         assert "ANALYST" in prompt, prompt[:200]
         await handle_message("/persona default", "u", "c")
+
+        # ── 3b. Persona renders the 5 structured fields; custom-prompt path ──
+        detail = get_persona_manager().get_active_detail()
+        assert set(detail) >= {
+            "system_prompt", "prompt_rules", "behavior",
+            "response_style", "constraints",
+        }, detail
+        rendered = get_active_persona_text()
+        assert "System Prompt" in rendered and "Constraints" in rendered, rendered[:200]
+        # Any non-preset text becomes the custom persona.
+        r = await handle_message("/persona Act like a friendly pirate", "u", "c")
+        assert r["command"] == "persona" and r["ok"] is True and r["active"] == "custom", r
+        assert "friendly pirate" in get_active_persona_text()
+        await handle_message("/persona default", "u", "c")
+        print("OK  persona is 5-field structured; /persona <custom prompt> sets custom")
         print("OK  global persona switches and is reflected in the prompt")
 
         # ── 4. /compact handles empty session gracefully ────────────────────
@@ -147,6 +167,7 @@ async def main():
 
     finally:
         api.route_chat = orig_route
+        _pmod.save_persona_config = orig_save_persona
 
     print("\nALL UNIFIED-RUNTIME CHECKS PASSED")
 

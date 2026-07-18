@@ -49,6 +49,9 @@
   .ctxchip{font-size:.66rem;border:1px solid var(--sage-line);border-radius:999px;padding:2px 8px;color:var(--sage)}
   .ctxchip b{color:var(--bone)}
   button.compact{background:rgba(255,184,107,.14);color:#ffb86b;border-color:#ffb86b}
+  textarea{width:100%;background:var(--vellum);color:var(--bone);border:1px solid var(--sage-line);
+    border-radius:8px;padding:7px 10px;font-size:.82rem;font-family:inherit;resize:vertical;line-height:1.4}
+  .personablock{display:flex;flex-direction:column;gap:6px}
 </style>
 </head>
 <body>
@@ -88,13 +91,24 @@
       <span class="hint">Skills</span>
       <div id="skillChips" class="ctxlayers"></div>
     </div>
+    <div class="ctxrow" style="flex-wrap:wrap;align-items:flex-start">
+      <span class="hint">Current Persona</span>
+      <div id="personaDetail" class="ctxlayers" style="flex:1"></div>
+    </div>
+    <div class="personablock">
+      <div class="ctxrow" style="flex-wrap:wrap;align-items:flex-start">
+        <span class="hint">Custom Persona</span>
+        <textarea id="customPersona" rows="3" placeholder="Write a custom system prompt, then Save. Or just send /persona <your prompt> in chat."></textarea>
+        <button id="customPersonaBtn" class="primary">Save Custom</button>
+      </div>
+    </div>
   </div>
   <div id="log"></div>
   <div class="composer">
-    <input id="input" type="text" placeholder="Message Primus…  (try /provider openai, /model gpt-4o, /auto, /persona analyst, /skill-maker mytool :: do X, /compact)" autocomplete="off">
+    <input id="input" type="text" placeholder="Message Primus…  (try /provider openai, /model gpt-4o, /auto, /persona critic, /persona explain, /skill-maker mytool :: do X, /compact)" autocomplete="off">
     <button id="sendBtn" class="primary">Send</button>
   </div>
-  <div class="hint">Commands: <code>/provider &lt;name&gt;</code> · <code>/model &lt;model&gt;</code> · <code>/auto</code> · <code>/persona &lt;name&gt;</code> · <code>/skill-maker &lt;n&gt; :: &lt;instructions&gt;</code> · <code>/compact</code></div>
+  <div class="hint">Commands: <code>/provider &lt;name&gt;</code> · <code>/model &lt;model&gt;</code> · <code>/auto</code> · <code>/persona &lt;name&gt;</code> · <code>/persona &lt;custom prompt&gt;</code> · <code>/skill-maker &lt;n&gt; :: &lt;instructions&gt;</code> · <code>/compact</code></div>
 </main>
 
 <script>
@@ -137,10 +151,31 @@ async function refreshPersona(){
     document.getElementById('pillPersona').textContent=p.active||'—';
     var sel=document.getElementById('personaSel');sel.innerHTML='';
     (p.presets||[]).forEach(function(n){
-      var o=document.createElement('option');o.value=n;o.textContent=n;
+      var o=document.createElement('option');o.value=n;
+      o.textContent=(p.preset_displays&&p.preset_displays[n])?p.preset_displays[n]:n;
       if(n===p.active)o.selected=true;sel.appendChild(o);
     });
+    renderPersonaDetail(p.active_detail);
+    document.getElementById('customPersona').value=(p.custom_text||'');
   }catch(e){/* personas endpoint unavailable */}
+}
+
+function renderPersonaDetail(d){
+  var box=document.getElementById('personaDetail');box.innerHTML='';
+  if(!d){return;}
+  var labels={system_prompt:'System',prompt_rules:'Rules',behavior:'Behavior',
+    response_style:'Style',constraints:'Constraints'};
+  Object.keys(labels).forEach(function(k){
+    var v=(d[k]||'').trim();
+    if(!v)return;
+    var sp=document.createElement('span');sp.className='ctxchip';
+    sp.innerHTML='<b>'+labels[k]+':</b> '+(v.length>120?v.slice(0,120)+'…':v);
+    box.appendChild(sp);
+  });
+  if(!box.children.length){
+    var sp=document.createElement('span');sp.className='ctxchip';
+    sp.textContent='(no detail)';box.appendChild(sp);
+  }
 }
 
 async function refreshSkills(){
@@ -214,8 +249,23 @@ document.getElementById('personaSel').addEventListener('change',async function()
     state.persona=this.value;
     document.getElementById('pillPersona').textContent=this.value;
     addMsg('assistant','Persona → '+this.value,{route:'persona'});
+    await refreshPersona();
   }else{
     addMsg('assistant',res.data.detail||'Failed to switch persona',{route:'error'});
+  }
+});
+
+document.getElementById('customPersonaBtn').addEventListener('click',async function(){
+  var txt=document.getElementById('customPersona').value.trim();
+  if(!txt){addMsg('assistant','Custom persona text is empty',{route:'error'});return;}
+  var res=await postJSON('/api/persona',{custom_text:txt});
+  if(res.ok){
+    state.persona='custom';
+    document.getElementById('pillPersona').textContent='custom';
+    addMsg('assistant','Custom persona saved',{route:'persona'});
+    await refreshPersona();
+  }else{
+    addMsg('assistant',res.data.detail||'Failed to save custom persona',{route:'error'});
   }
 });
 
