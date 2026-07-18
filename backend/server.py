@@ -184,6 +184,29 @@ class AutoSetRequest(BaseModel):
     enabled: bool
 
 
+class CompactRequest(BaseModel):
+    conversation_id: str = "default"
+    force: bool = False
+
+
+class ContextMemorySetRequest(BaseModel):
+    layer: str
+    key: str
+    value: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class PersonaSetRequest(BaseModel):
+    active: Optional[str] = None
+    custom_text: Optional[str] = None
+
+
+class SkillSetRequest(BaseModel):
+    name: str
+    instructions: str
+    description: Optional[str] = None
+
+
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
@@ -489,7 +512,7 @@ async def apply_config(payload: ConfigSubmitRequest) -> Dict[str, Any]:
             logger.warning(f"apply_config: stop_messaging warning (non-fatal): {exc}")
 
         for name, fn, args in [
-            ("memory",    initialize_memory,    ()),
+            ("memory",    initialize_memory,    (cfg,)),
             ("tools",     initialize_tools,     (cfg,)),
             ("jobs",      initialize_jobs,      (cfg,)),
             ("router",    initialize_router,    (cfg,)),
@@ -684,103 +707,237 @@ async def set_auto_endpoint(payload: AutoSetRequest) -> Dict[str, Any]:
 @app.post("/api/chat", tags=["chat"])
 async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
     """
-    Send a message to the configured AI provider and return the response.
-    Builds context from memory before forwarding to the provider.
+    Send a message through the single shared runtime (Primus Core).
 
-    Slash commands are intercepted before any AI call:
-      /provider <name>   switch active provider (restores its model)
-      /model <model>     change current provider's model (strict validation)
-      /auto              toggle Auto Mode
+    ALL message handling — provider/model/persona/compact/skill commands,
+    skill invocation, and normal chat — is delegated to ``handle_message`` in
+    backend.api.  The Dashboard / REST API therefore behaves identically to
+    Telegram and any future interface; this endpoint owns no AI logic.
+
+    Commands supported by the runtime:
+      /provider <name>     switch active provider (restores its model)
+      /model <model>       change current provider's model (strict validation)
+      /auto                toggle Auto Mode
+      /persona <name>      switch global persona (critic|architect|analyst|custom)
+      /compact             hard-compact the active session
+      /skill-maker <n>::<i>  create a persistent, invocable skill
+      /<skillname>         invoke a stored skill
     """
     _require_startup()
 
-    from backend.api import (
-        chat, build_prompt, add_interaction,
-        handle_command, route_chat,
-    )
-    from backend.providers.base import Message
-    from backend.metrics import get_metrics_registry
+    from backend.api import handle_message
 
-    _metrics = get_metrics_registry()
-
-    # ── Command interception ───────────────────────────────────────────────
     user_content = payload.messages[-1]["content"] if payload.messages else ""
-    matched, cmd = handle_command(user_content)
-    if matched:
-        return {
-            "command": cmd.get("command"),
-            "ok": cmd.get("ok"),
-            "provider": cmd.get("provider"),
-            "model": cmd.get("model"),
-            "auto_enabled": cmd.get("auto_enabled"),
-            "error": cmd.get("error"),
-            "available_models": cmd.get("available_models"),
-            "available_providers": cmd.get("available_providers"),
-            "configured_providers": cmd.get("configured_providers"),
-            "content": cmd.get("error") or (
-                f"{cmd.get('command')} OK → {cmd.get('provider')}"
-                + (f" :: {cmd.get('model')}" if cmd.get("model") else "")
-                + (f" (auto={'on' if cmd.get('auto_enabled') else 'off'})" if cmd.get("command") == "auto" else "")
-            ),
-        }
 
     try:
-        # Build context-aware prompt
-        enriched_prompt = await build_prompt(
-            payload.user_id, payload.conversation_id, user_content
+        result = await handle_message(
+            user_content, payload.user_id, payload.conversation_id or "default"
         )
-
-        messages = [Message(role="user", content=enriched_prompt)]
-
-        import time as _time
-        _t0 = _time.monotonic()
-        completion, route_info = await route_chat(
-            messages,
-            temperature=payload.temperature,
-            max_tokens=payload.max_tokens,
-        )
-        _latency_ms = int((_time.monotonic() - _t0) * 1000)
-
-        # Track metrics
-        _provider = completion.provider or "unknown"
-        _metrics.increment("ai.calls_total",   {"provider": _provider})
-        _metrics.increment("ai.calls_success", {"provider": _provider})
-        _metrics.gauge("ai.last_latency_ms", _latency_ms)
-
-        _usage = completion.usage or {}
-        _input_tokens  = _usage.get("prompt_tokens",     _usage.get("input_tokens",  0)) or 0
-        _output_tokens = _usage.get("completion_tokens", _usage.get("output_tokens", 0)) or 0
-        _total_tokens  = _usage.get("total_tokens", _input_tokens + _output_tokens) or 0
-        if _total_tokens:
-            _metrics.increment("ai.tokens_total",  {"provider": _provider}, _total_tokens)
-            _metrics.increment("ai.tokens_input",  {"provider": _provider}, _input_tokens)
-            _metrics.increment("ai.tokens_output", {"provider": _provider}, _output_tokens)
-
-        # Persist the interaction
-        await add_interaction(
-            payload.user_id,
-            payload.conversation_id,
-            user_content,
-            completion.content,
-        )
-
-        return {
-            "content": completion.content,
-            "model": completion.model,
-            "provider": completion.provider,
-            "usage": completion.usage,
-            "finish_reason": completion.finish_reason,
-            "route": route_info,
-        }
-
     except Exception as exc:
-        from backend.metrics import get_metrics_registry as _gmr
-        _gmr().increment("ai.calls_error", {"provider": "unknown"})
         logger.error(f"Chat error: {exc}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         )
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PART 4b – Context Engine (v1.3.0)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/context", tags=["context"])
+async def context_endpoint(
+    conversation_id: str = "default",
+) -> Dict[str, Any]:
+    """
+    Context budget + layered-memory snapshot.
+
+    Returns max / current / remaining / percentage tokens, the prune
+    threshold, per-layer entry counts, and the active-session message count.
+    """
+    _require_startup()
+    from backend.api import get_context_info
+
+    try:
+        return await get_context_info(conversation_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
+
+
+@app.post("/api/compact", tags=["context"])
+async def compact_endpoint(payload: CompactRequest) -> Dict[str, Any]:
+    """
+    Hard-compact the active session: summarise it, archive the summary into
+    Compact Memory, and clear the live conversation.
+    """
+    _require_startup()
+    from backend.api import compact_context
+
+    try:
+        return await compact_context(payload.conversation_id, payload.force)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
+
+
+@app.get("/api/context/memory", tags=["context"])
+async def list_context_memory(
+    layer: Optional[str] = None,
+    key: Optional[str] = None,
+) -> Dict[str, Any]:
+    """List entries in the layered memory (optionally filtered by layer/key)."""
+    _require_startup()
+    from backend.api import _context_engine
+    from backend.context import ContextLayer, is_valid_layer
+
+    if layer and not is_valid_layer(layer):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown layer {layer!r}. Valid: {[l.value for l in ContextLayer]}",
+        )
+    ctx_layer = ContextLayer(layer) if layer else None
+    if key and ctx_layer is not None:
+        entry = await _context_engine.store.get(ctx_layer, key)
+        entries = [entry] if entry else []
+    else:
+        entries = await _context_engine.store.get_all(ctx_layer)
+    return {
+        "entries": [
+            {
+                "layer": layer or "all",
+                "key": e["key"],
+                "value": e["value"],
+                "metadata": e["metadata"],
+                "created_at": e.get("created_at"),
+                "updated_at": e.get("updated_at"),
+            }
+            for e in entries
+        ],
+        "count": len(entries),
+    }
+
+
+@app.post("/api/context/memory", tags=["context"])
+async def set_context_memory(payload: ContextMemorySetRequest) -> Dict[str, Any]:
+    """Write an entry into one of the eight context layers."""
+    _require_startup()
+    from backend.api import _context_engine
+    from backend.context import ContextLayer, is_valid_layer
+
+    if not is_valid_layer(payload.layer):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown layer {payload.layer!r}. Valid: {[l.value for l in ContextLayer]}",
+        )
+    await _context_engine.set_fact(
+        ContextLayer(payload.layer), payload.key, payload.value, payload.metadata
+    )
+    return {"ok": True, "layer": payload.layer, "key": payload.key}
+
+
+@app.delete("/api/context/memory", tags=["context"])
+async def delete_context_memory(
+    layer: str,
+    key: str,
+) -> Dict[str, Any]:
+    """Delete an entry from a context layer."""
+    _require_startup()
+    from backend.api import _context_engine
+    from backend.context import ContextLayer, is_valid_layer
+
+    if not is_valid_layer(layer):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown layer {layer!r}. Valid: {[l.value for l in ContextLayer]}",
+        )
+    removed = await _context_engine.delete_fact(ContextLayer(layer), key)
+    return {"ok": True, "removed": removed, "layer": layer, "key": key}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PART 4c – Global Persona + Skills (read/manage; runtime owns the logic)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/personas", tags=["persona"])
+async def list_personas_endpoint() -> Dict[str, Any]:
+    """List the available personas and the currently active one (global)."""
+    _require_startup()
+    from backend.api import get_persona_manager
+
+    info = get_persona_manager().list_personas()
+    return {
+        "active": info["active"],
+        "presets": info["presets"],
+        "custom_set": info["custom_set"],
+    }
+
+
+@app.post("/api/persona", tags=["persona"])
+async def set_persona_endpoint(payload: PersonaSetRequest) -> Dict[str, Any]:
+    """
+    Switch the global active persona (affects every interface immediately).
+
+    Body: {"active": "critic"}  or  {"custom_text": "You are ..."}  to set + activate.
+    """
+    _require_startup()
+    from backend.api import get_persona_manager
+
+    mgr = get_persona_manager()
+    try:
+        if payload.active is not None:
+            mgr.set_active(payload.active)
+        elif payload.custom_text is not None:
+            mgr.set_custom(payload.custom_text)
+        else:
+            return {"ok": False, "error": "Provide 'active' or 'custom_text'."}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+    return {"ok": True, "active": mgr.get_active_name()}
+
+
+@app.get("/api/skills", tags=["skills"])
+async def list_skills_endpoint() -> Dict[str, Any]:
+    """List all persistent skills (shared across every interface)."""
+    _require_startup()
+    from backend.api import get_skill_manager
+
+    skills = await get_skill_manager().list_skills()
+    return {"skills": skills, "count": len(skills)}
+
+
+@app.post("/api/skill", tags=["skills"])
+async def create_skill_endpoint(payload: SkillSetRequest) -> Dict[str, Any]:
+    """Create (or overwrite) a persistent skill."""
+    _require_startup()
+    from backend.api import get_skill_manager
+
+    try:
+        skill = await get_skill_manager().create_skill(
+            payload.name, payload.instructions, description=payload.description
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+    return {"ok": True, "skill": skill}
+
+
+@app.delete("/api/skill", tags=["skills"])
+async def delete_skill_endpoint(name: str) -> Dict[str, Any]:
+    """Delete a persistent skill by name."""
+    _require_startup()
+    from backend.api import get_skill_manager
+
+    removed = await get_skill_manager().delete_skill(name)
+    return {"ok": True, "removed": removed, "name": name}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

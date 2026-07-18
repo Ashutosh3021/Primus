@@ -59,6 +59,22 @@ class DesktopConfig:
 
 
 @dataclass
+class ContextConfig:
+    """Context Engine configuration (budget + pruning)."""
+
+    max_tokens: int = 128_000
+    prune_threshold: float = 0.85
+
+
+@dataclass
+class PersonaConfig:
+    """Global persona configuration (one active persona for all interfaces)."""
+
+    active: str = "default"
+    custom_text: str = ""
+
+
+@dataclass
 class Config:
     """Full Primus configuration."""
 
@@ -68,6 +84,10 @@ class Config:
     memory: MemoryConfig
     tools: ToolsConfig
     desktop: DesktopConfig
+    # ── Context Engine (v1.3.0) ──
+    context: ContextConfig
+    # ── Global Persona (v1.3.1) ──
+    persona: PersonaConfig
     # ── Multi-Provider + Multi-Model (v1.3.0) ──
     # providers: name -> {enabled, secret_ref, default_model}
     # Each provider maintains its OWN persistent configuration.
@@ -169,6 +189,18 @@ def load_config(config_path: Path = CONFIG_PATH) -> Config:
         allowed_paths=data.get("desktop", {}).get("allowed_paths", ["."])
     )
 
+    ctx_raw = data.get("context", {}) or {}
+    context = ContextConfig(
+        max_tokens=int(ctx_raw.get("max_tokens", 128_000)),
+        prune_threshold=float(ctx_raw.get("prune_threshold", 0.85)),
+    )
+
+    persona_raw = data.get("persona", {}) or {}
+    persona = PersonaConfig(
+        active=str(persona_raw.get("active", "default")) or "default",
+        custom_text=str(persona_raw.get("custom_text", "") or ""),
+    )
+
     return Config(
         version=config_version,
         provider=provider,
@@ -176,6 +208,8 @@ def load_config(config_path: Path = CONFIG_PATH) -> Config:
         memory=memory,
         tools=tools,
         desktop=desktop,
+        context=context,
+        persona=persona,
         providers=providers,
         current_provider=current_provider,
         auto_enabled=auto_enabled,
@@ -232,6 +266,71 @@ def save_provider_runtime_state(
         "secret_ref": cur.get("secret_ref"),
         "model": cur.get("default_model"),
     }
+
+    tmp_path = config_path.with_suffix(".json.tmp")
+    tmp_path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    tmp_path.replace(config_path)
+
+
+def save_persona_config(
+    active: str,
+    custom_text: str,
+    config_path: Path = CONFIG_PATH,
+) -> None:
+    """
+    Persist the global persona selection to config.json (atomic).
+
+    Only the `persona` section is (re)written; every other section is
+    preserved so this call can be repeated without clobbering the rest of
+    the config (which must survive restarts).
+    """
+    data: Dict[str, Any] = {}
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+
+    data["persona"] = {
+        "active": str(active or "default"),
+        "custom_text": str(custom_text or ""),
+    }
+    data["version"] = max(int(data.get("version", VERSION) or VERSION), 2)
+
+    tmp_path = config_path.with_suffix(".json.tmp")
+    tmp_path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    tmp_path.replace(config_path)
+
+def save_context_config(
+    max_tokens: int,
+    prune_threshold: float,
+    config_path: Path = CONFIG_PATH,
+) -> None:
+    """
+    Persist Context Engine budget settings to config.json (atomic).
+
+    Only the `context` section is (re)written; every other section is
+    preserved so this call can be repeated without clobbering the rest of the
+    config (which must survive restarts).
+    """
+    data: Dict[str, Any] = {}
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+
+    data["context"] = {
+        "max_tokens": int(max_tokens),
+        "prune_threshold": float(prune_threshold),
+    }
+    data["version"] = max(int(data.get("version", VERSION) or VERSION), 2)
 
     tmp_path = config_path.with_suffix(".json.tmp")
     tmp_path.write_text(

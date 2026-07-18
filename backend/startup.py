@@ -86,7 +86,7 @@ async def startup_async() -> Config:
 
     # ── Memory ────────────────────────────────────────────────────────────────
     logger.info("Initialising memory system…")
-    initialize_memory()
+    initialize_memory(config)
     diag.mark_memory_initialized()
 
     # ── Tools ─────────────────────────────────────────────────────────────────

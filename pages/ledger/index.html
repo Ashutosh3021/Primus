@@ -536,6 +536,8 @@
     // ─── Live backend state ──────────────────────────────────────────────────────
     let liveStatus = null;   // /api/status response
     let liveJobs   = [];     // /api/jobs response
+    let liveContext = null;  // /api/context response
+    let livePersona = null;  // /api/personas response
 
     /** Fetch JSON from the backend, returning null on any error. */
     async function apiFetch(path) {
@@ -568,9 +570,11 @@
 
     /** Pull fresh data from the backend and refresh every visible panel. */
     async function refreshFromBackend() {
-      const [status, jobsData] = await Promise.all([
+      const [status, jobsData, contextData, personaData] = await Promise.all([
         apiFetch('/api/status'),
         apiFetch('/api/jobs?limit=500'),
+        apiFetch('/api/context?conversation_id=default'),
+        apiFetch('/api/personas'),
       ]);
 
       if (!status && !jobsData) {
@@ -582,6 +586,8 @@
       setOfflineBanner(false);
       liveStatus = status;
       liveJobs   = jobsData ? jobsData.jobs || [] : [];
+      liveContext = contextData;
+      livePersona = personaData;
 
       renderStatusBanner();
       renderJobsAsCallRecords();
@@ -653,6 +659,8 @@
         `Memory: <span style="color:var(--bone)">${liveStatus.memory_status || '—'}</span>`,
         `Scheduler: <span style="color:var(--bone)">${liveStatus.scheduler_status || '—'}</span>`,
         `Desktop: <span style="color:var(--bone)">${liveStatus.desktop_status || '—'}</span>`,
+        `Context: <span style="color:var(--bone)">${liveContext ? liveContext.percentage + '% (' + (liveContext.current_tokens||0) + '/' + (liveContext.max_tokens||0) + ')' : '—'}</span>`,
+        `Persona: <span style="color:var(--bone)">${livePersona ? (livePersona.active || '—') : '—'}</span>`,
         `Health: <span style="color:${healthColor}">${liveStatus.health ? liveStatus.health.status : '—'}</span>`,
         `Uptime: <span style="color:var(--bone)">${uptimeStr}</span>`,
         `v${liveStatus.version || '1'}`,

@@ -79,6 +79,16 @@
   },
   "desktop": {
     "enabled": true,
-    "allowed_paths": ["."]
+    "allowed_paths": [
+      "."
+    ]
+  },
+  "context": {
+    "max_tokens": 128000,
+    "prune_threshold": 0.85
+  },
+  "persona": {
+    "active": "critic",
+    "custom_text": ""
   }
 }

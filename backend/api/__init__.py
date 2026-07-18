@@ -33,7 +33,13 @@ from backend.db import (
     CronSchedule,
     CronStore,
 )
-from backend.memory import ContextEngine
+from backend.context import ContextEngine, ContextLayer, DEFAULT_USER
+from backend.persona import (
+    get_persona_manager,
+    get_active_persona_text,
+    initialize_persona,
+)
+from backend.skills import SkillManager, get_skill_manager, initialize_skills
 from backend.tools import ToolManager
 from backend.messaging import BaseMessaging, IncomingMessage, MESSAGING_PLATFORMS
 from backend.jobs import JobManager
@@ -145,14 +151,25 @@ def initialize_router(config: Config) -> None:
 
 # ── Memory ───────────────────────────────────────────────────────────────────
 
-def initialize_memory() -> None:
+def initialize_memory(config: "Config | None" = None) -> None:
     """Initialise memory stores (no secrets required; always RUNNING)."""
     global _memory_store, _conversation_store, _context_engine
     _memory_store = MemoryStore()
     _conversation_store = ConversationStore()
     _context_engine = ContextEngine()
+    # Apply Context Engine budget settings from config (if present).
+    if config is not None and getattr(config, "context", None) is not None:
+        _context_engine.set_max_tokens(int(config.context.max_tokens))
+        _context_engine.set_prune_threshold(float(config.context.prune_threshold))
+    # Global persona + skills live in the same core runtime as memory.
+    initialize_persona(config)
+    initialize_skills()
     _registry.set_running("memory")
-    logger.info("Memory system initialised")
+    logger.info(
+        "Context Engine initialised | "
+        f"max_tokens={_context_engine.budget.max_tokens} "
+        f"prune_threshold={_context_engine.budget.prune_threshold}"
+    )
 
 
 # ── Tools ────────────────────────────────────────────────────────────────────
@@ -278,10 +295,12 @@ def initialize_desktop(config: Config) -> None:
 
 async def _handle_incoming_message(msg: IncomingMessage) -> str:
     """
-    Bridge between any messaging platform and the AI router.
+    Bridge between any messaging platform and the SINGLE shared runtime.
 
-    Instrumented with [TG_AI] / [TG_PROVIDER] tags so Render logs show
-    exactly which stage fails when processing a Telegram message.
+    Every message — command, skill invocation, or plain chat — is routed
+    through ``handle_message`` so Telegram (and any future platform) behaves
+    identically to the REST API and Dashboard.  This module owns no AI logic
+    of its own; it only forwards to the core dispatcher and returns the text.
     """
     _metrics = get_metrics_registry()
     _metrics.increment("telegram.messages_received", {"platform": msg.platform})
@@ -296,64 +315,21 @@ async def _handle_incoming_message(msg: IncomingMessage) -> str:
     )
 
     try:
-        # ── 1. Build context-enriched prompt ─────────────────────────────────
+        result = await handle_message(msg.content, msg.user_id, msg.conversation_id)
+        content = result.get("content", "") if isinstance(result, dict) else str(result)
+        if isinstance(result, dict) and result.get("command"):
+            # Commands (provider/model/persona/compact/skill-maker) are replies too.
+            _metrics.increment("telegram.replies_sent", {"platform": msg.platform})
+        elif result.get("error"):
+            _metrics.increment("ai.calls_error", {"platform": msg.platform})
+        else:
+            _metrics.increment("telegram.replies_sent", {"platform": msg.platform})
         logger.info(
-            f"[TG_AI] Building prompt for user_id={msg.user_id} "
-            f"conversation_id={msg.conversation_id}"
+            f"[TG_AI] handle_message returned | "
+            f"command={result.get('command') if isinstance(result, dict) else None} | "
+            f"reply_len={len(content)}"
         )
-        prompt = await build_prompt(msg.user_id, msg.conversation_id, msg.content)
-        logger.info(
-            f"[TG_AI] Prompt built | prompt_len={len(prompt)} | "
-            f"prompt_preview={prompt[:120]!r}"
-        )
-
-        # ── 2. Call AI router ─────────────────────────────────────────────────
-        router_state = _registry.get_state("router")
-        logger.info(
-            f"[TG_AI] Calling AI router | router_state={router_state}"
-        )
-        messages = [Message(role="user", content=prompt)]
-
-        import time as _time
-        _t0 = _time.monotonic()
-        completion = await chat(messages)
-        _latency_ms = int((_time.monotonic() - _t0) * 1000)
-
-        logger.info(
-            f"[TG_PROVIDER] AI router returned | "
-            f"provider={completion.provider} | "
-            f"model={completion.model} | "
-            f"finish_reason={completion.finish_reason} | "
-            f"reply_len={len(completion.content)} | "
-            f"reply_preview={completion.content[:120]!r}"
-        )
-
-        # ── 3. Record metrics ─────────────────────────────────────────────────
-        _metrics.increment("ai.calls_total", {"provider": _router.provider_name if _router else "unknown"})
-        _metrics.increment("ai.calls_success", {"provider": _router.provider_name if _router else "unknown"})
-
-        _usage = completion.usage or {}
-        _input_tokens  = _usage.get("prompt_tokens",     _usage.get("input_tokens",  0)) or 0
-        _output_tokens = _usage.get("completion_tokens", _usage.get("output_tokens", 0)) or 0
-        _total_tokens  = _usage.get("total_tokens", _input_tokens + _output_tokens) or 0
-        if _total_tokens:
-            _metrics.increment("ai.tokens_total",  {"provider": _router.provider_name if _router else "unknown"}, _total_tokens)
-            _metrics.increment("ai.tokens_input",  {"provider": _router.provider_name if _router else "unknown"}, _input_tokens)
-            _metrics.increment("ai.tokens_output", {"provider": _router.provider_name if _router else "unknown"}, _output_tokens)
-
-        _metrics.gauge("ai.last_latency_ms", _latency_ms)
-
-        # ── 4. Persist interaction ────────────────────────────────────────────
-        logger.info(
-            f"[TG_AI] Persisting interaction for user_id={msg.user_id}"
-        )
-        await add_interaction(
-            msg.user_id, msg.conversation_id, msg.content, completion.content
-        )
-        logger.info(f"[TG_AI] Interaction persisted — returning reply")
-        _metrics.increment("telegram.replies_sent", {"platform": msg.platform})
-        return completion.content
-
+        return content
     except Exception as exc:
         _metrics.increment("ai.calls_error", {"platform": msg.platform})
         logger.exception(
@@ -720,10 +696,12 @@ async def delete_memory(user_id, layer, key):
     return await _memory_store.delete(user_id, layer, key)
 
 
-async def build_prompt(user_id, conversation_id, query):
+async def build_prompt(user_id, conversation_id, query, skill_instructions=None):
     if _context_engine is None:
         raise ConfigInvalidError("Context engine not initialised.")
-    return await _context_engine.build_prompt(user_id, conversation_id, query)
+    return await _context_engine.build_prompt(
+        user_id, conversation_id, query, skill_instructions=skill_instructions
+    )
 
 
 async def add_interaction(user_id, conversation_id, user_message, assistant_response):
@@ -732,6 +710,413 @@ async def add_interaction(user_id, conversation_id, user_message, assistant_resp
     await _context_engine.add_interaction(
         user_id, conversation_id, user_message, assistant_response
     )
+
+
+# ── Context Engine (v1.3.0) ────────────────────────────────────────────────────
+
+async def get_context_info(conversation_id: str = "default") -> dict:
+    """
+    Snapshot of the Context Engine budget + layer counts for GET /api/context.
+
+    Returns max / current / remaining / percentage tokens, the prune
+    threshold, per-layer entry counts, and the active-session message count.
+    """
+    if _context_engine is None:
+        raise ConfigInvalidError("Context engine not initialised.")
+    budget = await _context_engine.get_budget(conversation_id)
+    layers = await _context_engine.count_by_layer()
+    session_n = await _context_engine.active_session_count(conversation_id)
+    info = budget.to_dict()
+    info.update({
+        "layers": layers,
+        "active_session_messages": session_n,
+        "conversation_id": conversation_id,
+        "auto_pruned": _context_engine.last_pruned(conversation_id),
+        "shared_memory": True,
+    })
+    return info
+
+
+def handle_context_command(text: str) -> tuple[bool, dict]:
+    """
+    Parse chat messages for Context Engine slash commands.
+
+    Returns (matched, response_dict).  When matched is True the caller should
+    NOT forward the message to the AI — it was a command.
+
+    Supported:
+      /compact   hard-compact the active session into Compact Memory
+    """
+    if _context_engine is None:
+        return (False, {})
+    t = (text or "").strip()
+    if t == "/compact":
+        return (True, {"command": "compact"})
+    return (False, {})
+
+
+async def compact_context(conversation_id: str = "default", force: bool = False) -> dict:
+    """
+    Hard-compact the active session for `conversation_id`.
+
+    Gathers the live conversation, summarises it (via the active provider when
+    available, otherwise a deterministic extractive fallback), archives the
+    summary into Compact Memory, updates the rolling Conversation Summary, and
+    clears the active session.  Returns the summary plus a fresh budget snapshot.
+    """
+    if _context_engine is None:
+        raise ConfigInvalidError("Context engine not initialised.")
+
+    msgs = await _context_engine.get_active_session(conversation_id)
+    if not msgs:
+        info = await get_context_info(conversation_id)
+        info.update({"ok": True, "compacted": False, "message": "Active session is empty."})
+        return info
+
+    transcript = "\n".join(f"{m['role']}: {m['content']}" for m in msgs)
+    summary = await _summarize_transcript(transcript)
+    await _context_engine.apply_compaction(conversation_id, summary)
+
+    info = await get_context_info(conversation_id)
+    info.update({
+        "ok": True,
+        "compacted": True,
+        "summary": summary,
+        "archived_entries": await _context_engine.count_by_layer(),
+    })
+    return info
+
+
+async def _summarize_transcript(transcript: str) -> str:
+    """Summarise a transcript, using the LLM when possible, else fallback."""
+    prompt = (
+        "Summarise the following conversation. Preserve ALL key facts, user "
+        "preferences, decisions, and open tasks. Be concise and factual. "
+        "Do not invent information.\n\n" + transcript
+    )
+    try:
+        completion, _info = await route_chat([Message(role="user", content=prompt)])
+        if completion and getattr(completion, "content", None):
+            return completion.content.strip()
+    except Exception as exc:
+        logger.warning(f"LLM compaction unavailable ({exc}); using extractive fallback")
+    return _extractive_summary(transcript)
+
+
+def _extractive_summary(transcript: str) -> str:
+    """Deterministic fallback summary (no LLM required)."""
+    lines = [ln for ln in transcript.splitlines() if ln.strip()]
+    user_turns = [ln for ln in lines if ln.lower().startswith("user:")]
+    assistant_turns = [ln for ln in lines if ln.lower().startswith("assistant:")]
+    parts = [f"Conversation with {len(user_turns)} user turn(s)."]
+    if user_turns:
+        parts.append("User requests / topics:")
+        for turn in user_turns[:25]:
+            parts.append("  - " + turn[len("user:"):].strip()[:300])
+    if assistant_turns:
+        parts.append(
+            f"Assistant provided {len(assistant_turns)} response(s); "
+            "key points preserved in Compact Memory."
+        )
+    parts.append("[Summary generated by deterministic fallback — no LLM available.]")
+    return "\n".join(parts)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PART Xb – Unified command + message dispatcher (the ONE runtime entry)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Every interface — Telegram, the Web Dashboard, the REST API, and any future
+# client — funnels messages through `handle_message`.  This guarantees a single
+# AI runtime: command parsing, persona switching, skill execution, prompt
+# building, provider routing, and memory updates all live HERE, never in an
+# interface.  No interface may own business logic.
+
+def _command_content(cmd: dict) -> str:
+    """Human-readable reply text for a multi-provider command result."""
+    if not cmd.get("ok"):
+        return cmd.get("error") or "Command failed."
+    c = cmd.get("command")
+    if c == "auto":
+        return f"Auto {'enabled' if cmd.get('auto_enabled') else 'disabled'}"
+    if c == "provider":
+        return f"{c} OK → {cmd.get('provider')}" + (
+            f" :: {cmd.get('model')}" if cmd.get("model") else ""
+        )
+    if c == "model":
+        return f"{c} OK → {cmd.get('provider')} :: {cmd.get('model')}"
+    return cmd.get("error") or "OK"
+
+
+def _command_response(cmd: dict) -> dict:
+    cmd = dict(cmd)
+    cmd.setdefault("content", _command_content(cmd))
+    return cmd
+
+
+def _compact_response(info: dict) -> dict:
+    """Shape a compact_context() result for any interface."""
+    return {
+        "command": "compact",
+        "ok": info.get("ok"),
+        "compacted": info.get("compacted"),
+        "summary": info.get("summary"),
+        "message": info.get("message"),
+        "content": info.get("summary") or info.get("message") or "Compacted.",
+        "context": {
+            "max_tokens": info.get("max_tokens"),
+            "current_tokens": info.get("current_tokens"),
+            "remaining": info.get("remaining"),
+            "percentage": info.get("percentage"),
+        },
+        "route": {"mode": "context", "provider": None, "model": None},
+    }
+
+
+def handle_persona_command(text: str) -> tuple[bool, dict]:
+    """
+    Parse and execute persona commands.
+
+      /persona                 list presets + show active persona
+      /persona <name>          switch active persona (default|critic|architect|analyst)
+      /persona custom <text>   set a custom persona and activate it
+
+    Returns (matched, response_dict).  When matched, the caller must NOT treat
+    the message as a normal chat.
+    """
+    t = (text or "").strip()
+    if not t.startswith("/persona"):
+        return (False, {})
+    parts = t.split(None, 1)
+    mgr = get_persona_manager()
+
+    if len(parts) < 2:
+        info = mgr.list_personas()
+        return (True, {
+            "command": "persona",
+            "ok": True,
+            "active": info["active"],
+            "presets": info["presets"],
+            "custom_set": info["custom_set"],
+            "content": (
+                f"Active persona: {info['active']}. "
+                f"Available: {', '.join(info['presets'])}"
+            ),
+        })
+
+    arg = parts[1].strip()
+    if arg.lower().startswith("custom"):
+        custom_text = arg[len("custom"):].strip()
+        if not custom_text:
+            return (True, {
+                "command": "persona", "ok": False,
+                "error": "Usage: /persona custom <your persona text>",
+            })
+        try:
+            mgr.set_custom(custom_text)
+        except Exception as exc:
+            return (True, {"command": "persona", "ok": False, "error": str(exc)})
+        preview = custom_text[:80] + ("…" if len(custom_text) > 80 else "")
+        return (True, {
+            "command": "persona", "ok": True, "active": "custom",
+            "content": f"Persona set to custom: {preview}",
+        })
+
+    try:
+        mgr.set_active(arg)
+    except Exception as exc:
+        return (True, {
+            "command": "persona", "ok": False, "error": str(exc),
+            "presets": mgr.list_personas()["presets"],
+        })
+    return (True, {
+        "command": "persona", "ok": True,
+        "active": mgr.get_active_name(),
+        "content": f"Persona switched → {mgr.get_active_name()}",
+    })
+
+
+async def handle_skill_maker_command(text: str) -> tuple[bool, dict]:
+    """
+    Parse and execute the skill-maker command.
+
+      /skill-maker <name> :: <instructions>
+      /skill-maker <name> <instructions>     (single-token name)
+
+    Creates a persistent skill in the shared `skills` memory layer.  The skill
+    is then invocable from ANY interface via ``/<name>``.
+
+    Returns (matched, response_dict).
+    """
+    t = (text or "").strip()
+    if not t.startswith("/skill-maker"):
+        return (False, {})
+    parts = t.split(None, 1)
+    if len(parts) < 2:
+        return (True, {
+            "command": "skill-maker", "ok": False,
+            "error": "Usage: /skill-maker <name> :: <instructions>",
+        })
+    body = parts[1].strip()
+    if "::" in body:
+        name, instructions = body.split("::", 1)
+        name, instructions = name.strip(), instructions.strip()
+    else:
+        idx = body.find(" ")
+        if idx > 0:
+            name, instructions = body[:idx].strip(), body[idx + 1:].strip()
+        else:
+            name, instructions = body.strip(), ""
+    if not name:
+        return (True, {
+            "command": "skill-maker", "ok": False, "error": "Skill name required.",
+        })
+    try:
+        sm = get_skill_manager()
+        skill = await sm.create_skill(name, instructions, description=name)
+    except Exception as exc:
+        return (True, {"command": "skill-maker", "ok": False, "error": str(exc)})
+    return (True, {
+        "command": "skill-maker", "ok": True, "skill": skill,
+        "content": (
+            f"Skill '/{skill['name']}' created. Invoke with /{skill['name']}."
+        ),
+    })
+
+
+async def match_skill_invocation(text: str):
+    """Return the skill dict if `text` invokes an existing skill, else None."""
+    sm = get_skill_manager()
+    return await sm.match(text)
+
+
+async def run_chat(text: str, user_id: str, conversation_id: str) -> dict:
+    """Normal chat path: build prompt → route → persist. Raises on failure."""
+    _metrics = get_metrics_registry()
+    enriched_prompt = await build_prompt(user_id, conversation_id, text)
+    messages = [Message(role="user", content=enriched_prompt)]
+
+    import time as _time
+    _t0 = _time.monotonic()
+    completion, route_info = await route_chat(
+        messages, temperature=0.7, max_tokens=None
+    )
+    _latency_ms = int((_time.monotonic() - _t0) * 1000)
+
+    _provider = completion.provider or "unknown"
+    _metrics.increment("ai.calls_total", {"provider": _provider})
+    _metrics.increment("ai.calls_success", {"provider": _provider})
+    _metrics.gauge("ai.last_latency_ms", _latency_ms)
+
+    _usage = completion.usage or {}
+    _input_tokens = _usage.get("prompt_tokens", _usage.get("input_tokens", 0)) or 0
+    _output_tokens = _usage.get("completion_tokens", _usage.get("output_tokens", 0)) or 0
+    _total_tokens = _usage.get("total_tokens", _input_tokens + _output_tokens) or 0
+    if _total_tokens:
+        _metrics.increment("ai.tokens_total", {"provider": _provider}, _total_tokens)
+        _metrics.increment("ai.tokens_input", {"provider": _provider}, _input_tokens)
+        _metrics.increment("ai.tokens_output", {"provider": _provider}, _output_tokens)
+
+    await add_interaction(user_id, conversation_id, text, completion.content)
+    return {
+        "content": completion.content,
+        "model": completion.model,
+        "provider": completion.provider,
+        "usage": completion.usage,
+        "finish_reason": completion.finish_reason,
+        "route": route_info,
+    }
+
+
+async def run_skill(skill: dict, text: str, user_id: str, conversation_id: str) -> dict:
+    """Skill-invocation path: inject skill instructions, then route + persist."""
+    _metrics = get_metrics_registry()
+    instructions = skill.get("instructions", "")
+    enriched_prompt = await build_prompt(
+        user_id, conversation_id, text, skill_instructions=instructions
+    )
+    messages = [Message(role="user", content=enriched_prompt)]
+
+    import time as _time
+    _t0 = _time.monotonic()
+    completion, route_info = await route_chat(
+        messages, temperature=0.7, max_tokens=None
+    )
+    _latency_ms = int((_time.monotonic() - _t0) * 1000)
+
+    _provider = completion.provider or "unknown"
+    _metrics.increment("ai.calls_total", {"provider": _provider})
+    _metrics.increment("ai.calls_success", {"provider": _provider})
+    _metrics.gauge("ai.last_latency_ms", _latency_ms)
+
+    _usage = completion.usage or {}
+    _input_tokens = _usage.get("prompt_tokens", _usage.get("input_tokens", 0)) or 0
+    _output_tokens = _usage.get("completion_tokens", _usage.get("output_tokens", 0)) or 0
+    _total_tokens = _usage.get("total_tokens", _input_tokens + _output_tokens) or 0
+    if _total_tokens:
+        _metrics.increment("ai.tokens_total", {"provider": _provider}, _total_tokens)
+        _metrics.increment("ai.tokens_input", {"provider": _provider}, _input_tokens)
+        _metrics.increment("ai.tokens_output", {"provider": _provider}, _output_tokens)
+
+    await add_interaction(user_id, conversation_id, text, completion.content)
+    route_info = dict(route_info or {})
+    route_info["mode"] = "skill"
+    route_info["skill"] = skill.get("name")
+    return {
+        "content": completion.content,
+        "model": completion.model,
+        "provider": completion.provider,
+        "usage": completion.usage,
+        "finish_reason": completion.finish_reason,
+        "skill": skill.get("name"),
+        "route": route_info,
+    }
+
+
+async def handle_message(text: str, user_id: str, conversation_id: str) -> dict:
+    """
+    THE single runtime entry point for every interface.
+
+    Resolution order (all live in core, never in an interface):
+      1. multi-provider command      (/provider, /model, /auto)
+      2. persona command             (/persona)
+      3. context command             (/compact)
+      4. skill-maker command         (/skill-maker)
+      5. skill invocation            (/<name> where <name> is a stored skill)
+      6. normal chat                 (build prompt → route → persist)
+
+    Returns a dict that any interface can render: always contains ``content``;
+    command results also carry ``command``/``ok``; chat/skill results carry
+    ``model``/``provider``/``usage``/``route``.
+    """
+    # 1. Multi-provider commands.
+    matched, cmd = handle_command(text)
+    if matched:
+        return _command_response(cmd)
+
+    # 2. Persona command.
+    matched, cmd = handle_persona_command(text)
+    if matched:
+        return cmd
+
+    # 3. Context command (compact).
+    cmatched, ccmd = handle_context_command(text)
+    if cmatched and ccmd.get("command") == "compact":
+        info = await compact_context(conversation_id)
+        return _compact_response(info)
+
+    # 4. Skill-maker command.
+    matched, cmd = await handle_skill_maker_command(text)
+    if matched:
+        return cmd
+
+    # 5. Skill invocation (any stored skill).
+    skill = await match_skill_invocation(text)
+    if skill:
+        return await run_skill(skill, text, user_id, conversation_id)
+
+    # 6. Normal chat.
+    return await run_chat(text, user_id, conversation_id)
 
 
 # ── Lifecycle start / stop ────────────────────────────────────────────────────
@@ -832,6 +1217,18 @@ __all__ = [
     "delete_memory",
     "build_prompt",
     "add_interaction",
+    "get_context_info",
+    "handle_context_command",
+    "compact_context",
+    "initialize_persona",
+    "initialize_skills",
+    "get_persona_manager",
+    "get_active_persona_text",
+    "get_skill_manager",
+    "handle_persona_command",
+    "handle_skill_maker_command",
+    "match_skill_invocation",
+    "handle_message",
     "start_messaging",
     "stop_messaging",
     "start_jobs",

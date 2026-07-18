@@ -34,6 +34,21 @@
   .composer input{flex:1}
   .hint{font-size:.7rem;color:var(--sage)}
   .err{color:var(--rust)}
+  .ctxwrap{display:flex;flex-direction:column;gap:6px;font-size:.74rem;color:var(--sage);
+    border:1px solid var(--sage-line);border-radius:10px;padding:9px 11px;background:rgba(16,21,28,.6)}
+  .ctxrow{display:flex;align-items:center;gap:10px}
+  .ctxbar{flex:1;height:12px;border-radius:7px;background:#0e1620;overflow:hidden;
+    border:1px solid var(--sage-line);display:flex}
+  .ctxfill{height:100%;background:linear-gradient(90deg,var(--bioglow),#2fb98a);
+    transition:width .25s ease;min-width:2px}
+  .ctxfill.warn{background:linear-gradient(90deg,#ffb86b,#ff6b6b)}
+  .ctxpct{font-variant-numeric:tabular-nums;color:var(--bone);min-width:42px;text-align:right}
+  .ctxstats{display:flex;gap:14px;flex-wrap:wrap}
+  .ctxstats b{color:var(--bioglow);font-variant-numeric:tabular-nums}
+  .ctxlayers{display:flex;gap:6px;flex-wrap:wrap}
+  .ctxchip{font-size:.66rem;border:1px solid var(--sage-line);border-radius:999px;padding:2px 8px;color:var(--sage)}
+  .ctxchip b{color:var(--bone)}
+  button.compact{background:rgba(255,184,107,.14);color:#ffb86b;border-color:#ffb86b}
 </style>
 </head>
 <body>
@@ -42,23 +57,44 @@
   <span class="pill">Provider: <b id="pillProvider">—</b></span>
   <span class="pill">Model: <b id="pillModel">—</b></span>
   <span class="pill">Auto: <b id="pillAuto">off</b></span>
+  <span class="pill">Persona: <b id="pillPersona">—</b></span>
   <div class="controls">
     <label class="hint">Provider</label>
     <select id="providerSel"></select>
     <label class="hint">Model</label>
     <select id="modelSel"></select>
     <button id="autoBtn" class="toggle">Auto: off</button>
+    <button id="compactBtn" class="compact">Compact</button>
+    <label class="hint">Persona</label>
+    <select id="personaSel"></select>
   </div>
 </header>
 
 <main>
   <div id="route">Route: <b>—</b></div>
+  <div class="ctxwrap">
+    <div class="ctxrow">
+      <span class="hint">Context</span>
+      <div class="ctxbar"><div id="ctxFill" class="ctxfill" style="width:0%"></div></div>
+      <span id="ctxPct" class="ctxpct">0%</span>
+    </div>
+    <div class="ctxstats">
+      <span>Remaining: <b id="ctxRemain">—</b></span>
+      <span>Current: <b id="ctxCur">—</b></span>
+      <span>Maximum: <b id="ctxMax">—</b></span>
+    </div>
+    <div id="ctxLayers" class="ctxlayers"></div>
+    <div class="ctxrow" style="flex-wrap:wrap">
+      <span class="hint">Skills</span>
+      <div id="skillChips" class="ctxlayers"></div>
+    </div>
+  </div>
   <div id="log"></div>
   <div class="composer">
-    <input id="input" type="text" placeholder="Message Primus…  (try /provider openai, /model gpt-4o, /auto)" autocomplete="off">
+    <input id="input" type="text" placeholder="Message Primus…  (try /provider openai, /model gpt-4o, /auto, /persona analyst, /skill-maker mytool :: do X, /compact)" autocomplete="off">
     <button id="sendBtn" class="primary">Send</button>
   </div>
-  <div class="hint">Commands: <code>/provider &lt;name&gt;</code> · <code>/model &lt;model&gt;</code> · <code>/auto</code></div>
+  <div class="hint">Commands: <code>/provider &lt;name&gt;</code> · <code>/model &lt;model&gt;</code> · <code>/auto</code> · <code>/persona &lt;name&gt;</code> · <code>/skill-maker &lt;n&gt; :: &lt;instructions&gt;</code> · <code>/compact</code></div>
 </main>
 
 <script>
@@ -66,7 +102,7 @@ var API = (window.API_BASE || '') ;
 async function getJSON(u){var r=await fetch(API+u);return r.json();}
 async function postJSON(u,body){var r=await fetch(API+u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {ok:r.ok,status:r.status,data:await r.json().catch(function(){return{}})};}
 
-var state={providers:[],current:null,auto:false,model:null};
+var state={providers:[],current:null,auto:false,model:null,persona:'default',skills:[]};
 
 async function refresh(){
   try{
@@ -86,9 +122,38 @@ async function refresh(){
     var ab=document.getElementById('autoBtn');
     ab.textContent='Auto: '+(state.auto?'on':'off');
     ab.classList.toggle('on',state.auto);
+    await refreshContext();
+    await refreshPersona();
+    await refreshSkills();
   }catch(e){
     addMsg('assistant','Could not reach backend: '+e.message);
   }
+}
+
+async function refreshPersona(){
+  try{
+    var p=await getJSON('/api/personas');
+    state.persona=p.active||'default';
+    document.getElementById('pillPersona').textContent=p.active||'—';
+    var sel=document.getElementById('personaSel');sel.innerHTML='';
+    (p.presets||[]).forEach(function(n){
+      var o=document.createElement('option');o.value=n;o.textContent=n;
+      if(n===p.active)o.selected=true;sel.appendChild(o);
+    });
+  }catch(e){/* personas endpoint unavailable */}
+}
+
+async function refreshSkills(){
+  try{
+    var s=await getJSON('/api/skills');
+    state.skills=(s.skills||[]).map(function(x){return x.name;});
+    var box=document.getElementById('skillChips');box.innerHTML='';
+    (s.skills||[]).forEach(function(sk){
+      var sp=document.createElement('span');sp.className='ctxchip';
+      sp.innerHTML='/'+sk.name+' <b>'+(sk.description||'')+'</b>';
+      box.appendChild(sp);
+    });
+  }catch(e){/* skills endpoint unavailable */}
 }
 
 async function refreshModels(providerName){
@@ -132,6 +197,53 @@ document.getElementById('autoBtn').addEventListener('click',async function(){
   if(res.ok){state.auto=res.data.auto_enabled;await refresh();}
 });
 
+document.getElementById('compactBtn').addEventListener('click',async function(){
+  var res=await postJSON('/api/compact',{conversation_id:'default'});
+  if(res.ok){
+    var c=res.data;
+    addMsg('assistant',(c.compacted?'Compacted. ':'')+(c.summary||c.message||'Compacted.'),{route:'compact'});
+    await refreshContext();
+  }else{
+    addMsg('assistant','Compact failed: '+(res.data.detail||res.status),{route:'error'});
+  }
+});
+
+document.getElementById('personaSel').addEventListener('change',async function(){
+  var res=await postJSON('/api/persona',{active:this.value});
+  if(res.ok){
+    state.persona=this.value;
+    document.getElementById('pillPersona').textContent=this.value;
+    addMsg('assistant','Persona → '+this.value,{route:'persona'});
+  }else{
+    addMsg('assistant',res.data.detail||'Failed to switch persona',{route:'error'});
+  }
+});
+
+async function refreshContext(){
+  try{
+    var info=await getJSON('/api/context?conversation_id=default');
+    renderContext(info);
+  }catch(e){/* context endpoint unavailable */}
+}
+function renderContext(info){
+  var pct=info.percentage||0;
+  var fill=document.getElementById('ctxFill');
+  fill.style.width=Math.max(0,Math.min(100,pct))+'%';
+  fill.classList.toggle('warn',pct>=85);
+  document.getElementById('ctxPct').textContent=pct+'%';
+  document.getElementById('ctxRemain').textContent=(info.remaining!=null?info.remaining.toLocaleString():'—');
+  document.getElementById('ctxCur').textContent=(info.current_tokens!=null?info.current_tokens.toLocaleString():'—');
+  document.getElementById('ctxMax').textContent=(info.max_tokens!=null?info.max_tokens.toLocaleString():'—');
+  var layers=info.layers||{};
+  var box=document.getElementById('ctxLayers');box.innerHTML='';
+  Object.keys(layers).forEach(function(k){
+    if(!layers[k])return;
+    var s=document.createElement('span');s.className='ctxchip';
+    s.innerHTML=k.replace(/_/g,' ')+': <b>'+layers[k]+'</b>';
+    box.appendChild(s);
+  });
+}
+
 async function send(){
   var inp=document.getElementById('input');
   var text=inp.value.trim();if(!text)return;
@@ -140,6 +252,16 @@ async function send(){
   var res=await postJSON('/api/chat',{messages:[{role:'user',content:text}]});
   if(res.ok && res.data.command){
     var c=res.data;
+    if(c.command==='compact'){
+      addMsg('assistant',(c.compacted?'Compacted. ':'')+(c.summary||c.message||'Compacted.'),{route:'compact'});
+      await refreshContext();
+      return;
+    }
+    if(c.command==='persona'){
+      addMsg('assistant',c.content||'Persona updated',{route:'persona'});
+      await refreshPersona();
+      return;
+    }
     var msg=(c.error)||((c.command==='auto'?'Auto '+(c.auto_enabled?'enabled':'disabled'):'OK → '+c.provider+(c.model?(' :: '+c.model):'')));
     addMsg('assistant',msg,{route:c.command});
     if(c.available_models)addMsg('assistant','Available: '+c.available_models.join(', '),{route:'hint'});
@@ -152,6 +274,7 @@ async function send(){
     addMsg('assistant',res.data.content||'(empty)',{route:meta});
     document.getElementById('route').innerHTML='Route: <b>'+(r.mode||'?')+'</b> · '+(r.provider||'?')+(r.model?(' :: '+r.model):'')+(r.category?(' · '+r.category):'');
     await refresh();
+    await refreshContext();
   }else{
     addMsg('assistant','Error: '+(res.data.detail||res.status),{route:'error'});
   }
