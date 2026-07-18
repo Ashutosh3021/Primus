@@ -49,9 +49,27 @@
   .ctxchip{font-size:.66rem;border:1px solid var(--sage-line);border-radius:999px;padding:2px 8px;color:var(--sage)}
   .ctxchip b{color:var(--bone)}
   button.compact{background:rgba(255,184,107,.14);color:#ffb86b;border-color:#ffb86b}
+  button.toggle.on{background:rgba(63,232,176,.16);color:var(--bioglow);border-color:var(--bioglow)}
   textarea{width:100%;background:var(--vellum);color:var(--bone);border:1px solid var(--sage-line);
     border-radius:8px;padding:7px 10px;font-size:.82rem;font-family:inherit;resize:vertical;line-height:1.4}
   .personablock{display:flex;flex-direction:column;gap:6px}
+  #skillManager{display:none;flex-direction:column;gap:10px;border:1px solid var(--sage-line);
+    border-radius:10px;padding:12px;background:rgba(16,21,28,.6)}
+  #skillManager.open{display:flex}
+  .skillrow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+  .skillcard{border:1px solid var(--sage-line);border-radius:8px;padding:8px 10px;background:var(--vellum);
+    display:flex;flex-direction:column;gap:4px;min-width:220px;flex:1}
+  .skillcard .name{font-weight:600;color:var(--bioglow)}
+  .skillcard .desc{font-size:.74rem;color:var(--sage)}
+  .badge{font-size:.62rem;border:1px solid var(--bioglow);color:var(--bioglow);border-radius:999px;padding:1px 7px}
+  .skillcard .acts{display:flex;gap:6px}
+  .minibtn{font-size:.7rem;padding:3px 8px;border-radius:6px;cursor:pointer;
+    background:var(--vellum);color:var(--bone);border:1px solid var(--sage-line)}
+  .minibtn.danger{border-color:var(--rust);color:var(--rust)}
+  .field{display:flex;flex-direction:column;gap:3px;font-size:.72rem;color:var(--sage)}
+  .field input,.field textarea{font-size:.8rem}
+  #skillExportOut{white-space:pre-wrap;font-size:.72rem;max-height:160px;overflow:auto;
+    border:1px solid var(--sage-line);border-radius:6px;padding:8px;background:var(--vellum);color:var(--bone)}
 </style>
 </head>
 <body>
@@ -68,6 +86,7 @@
     <select id="modelSel"></select>
     <button id="autoBtn" class="toggle">Auto: off</button>
     <button id="compactBtn" class="compact">Compact</button>
+    <button id="skillsBtn">Skills</button>
     <label class="hint">Persona</label>
     <select id="personaSel"></select>
   </div>
@@ -103,12 +122,39 @@
       </div>
     </div>
   </div>
+  <div id="skillManager">
+    <div class="skillrow">
+      <input id="skillSearch" type="text" placeholder="Search skills…" style="flex:1">
+      <button id="skillRefreshBtn" class="minibtn">Refresh</button>
+    </div>
+    <div id="skillList" class="ctxlayers" style="flex-direction:column"></div>
+
+    <div class="field">
+      <label>Create skill</label>
+      <input id="newSkillName" type="text" placeholder="name (lowercase, e.g. summarizer)">
+      <textarea id="newSkillPrompt" rows="3" placeholder="Prompt / instructions injected when invoked"></textarea>
+      <input id="newSkillDesc" type="text" placeholder="description (optional)">
+      <label style="margin-top:4px"><input type="checkbox" id="newSkillActive"> Active (auto-load into every prompt)</label>
+      <button id="skillCreateBtn" class="primary">Create Skill</button>
+    </div>
+
+    <div class="field">
+      <label>Import skill (paste exported JSON)</label>
+      <textarea id="skillImportBox" rows="3" placeholder='{"name":"…","prompt":"…"}'></textarea>
+      <button id="skillImportBtn">Import</button>
+    </div>
+
+    <div class="field">
+      <label>Export</label>
+      <div id="skillExportOut"></div>
+    </div>
+  </div>
   <div id="log"></div>
   <div class="composer">
     <input id="input" type="text" placeholder="Message Primus…  (try /provider openai, /model gpt-4o, /auto, /persona critic, /persona explain, /skill-maker mytool :: do X, /compact)" autocomplete="off">
     <button id="sendBtn" class="primary">Send</button>
   </div>
-  <div class="hint">Commands: <code>/provider &lt;name&gt;</code> · <code>/model &lt;model&gt;</code> · <code>/auto</code> · <code>/persona &lt;name&gt;</code> · <code>/persona &lt;custom prompt&gt;</code> · <code>/skill-maker &lt;n&gt; :: &lt;instructions&gt;</code> · <code>/compact</code></div>
+  <div class="hint">Commands: <code>/provider &lt;name&gt;</code> · <code>/model &lt;model&gt;</code> · <code>/auto</code> · <code>/persona &lt;name&gt;</code> · <code>/persona &lt;custom prompt&gt;</code> · <code>/skill-maker</code> · <code>/list-skills</code> · <code>/&lt;skill&gt; delete</code> · <code>/compact</code></div>
 </main>
 
 <script>
@@ -188,8 +234,85 @@ async function refreshSkills(){
       sp.innerHTML='/'+sk.name+' <b>'+(sk.description||'')+'</b>';
       box.appendChild(sp);
     });
+    renderSkillManager(s.skills||[]);
   }catch(e){/* skills endpoint unavailable */}
 }
+
+function renderSkillManager(skills){
+  var q=(document.getElementById('skillSearch').value||'').toLowerCase().trim();
+  var box=document.getElementById('skillList');box.innerHTML='';
+  skills.filter(function(sk){
+    return !q || (sk.name||'').toLowerCase().indexOf(q)>=0 || (sk.description||'').toLowerCase().indexOf(q)>=0;
+  }).forEach(function(sk){
+    var card=document.createElement('div');card.className='skillcard';
+    var top=document.createElement('div');top.style.display='flex';top.style.gap='8px';top.style.alignItems='center';
+    var nm=document.createElement('span');nm.className='name';nm.textContent='/'+sk.name;top.appendChild(nm);
+    if(sk.active){var b=document.createElement('span');b.className='badge';b.textContent='ACTIVE';top.appendChild(b);}
+    card.appendChild(top);
+    var d=document.createElement('div');d.className='desc';(d.textContent=sk.description||'');card.appendChild(d);
+    var acts=document.createElement('div');acts.className='acts';
+    var ex=document.createElement('button');ex.className='minibtn';ex.textContent='Export';
+    ex.onclick=function(){exportSkill(sk.name);};
+    var del=document.createElement('button');del.className='minibtn danger';del.textContent='Delete';
+    del.onclick=function(){deleteSkill(sk.name);};
+    acts.appendChild(ex);acts.appendChild(del);
+    card.appendChild(acts);
+    box.appendChild(card);
+  });
+  if(!box.children.length){
+    var empty=document.createElement('span');empty.className='ctxchip';empty.textContent='(no skills)';box.appendChild(empty);
+  }
+}
+
+async function exportSkill(name){
+  try{
+    var r=await getJSON('/api/skill/export?name='+encodeURIComponent(name));
+    if(r.ok){document.getElementById('skillExportOut').textContent=r.export;}
+    else document.getElementById('skillExportOut').textContent='Export failed: '+(r.detail||'unknown');
+  }catch(e){document.getElementById('skillExportOut').textContent='Export error: '+e.message;}
+}
+
+async function deleteSkill(name){
+  if(!confirm('Delete /'+name+' permanently?'))return;
+  var res=await postJSON('/api/skill?name='+encodeURIComponent(name),{});
+  // DELETE has no body; use fetch directly.
+  try{
+    var r=await fetch(API+'/api/skill?name='+encodeURIComponent(name),{method:'DELETE'});
+    var data=await r.json().catch(function(){return{};});
+    if(r.ok){addMsg('assistant','Skill /'+name+' deleted',{route:'skill'});await refreshSkills();}
+    else addMsg('assistant','Delete failed: '+(data.detail||r.status),{route:'error'});
+  }catch(e){addMsg('assistant','Delete error: '+e.message,{route:'error'});}
+}
+
+document.getElementById('skillsBtn').addEventListener('click',function(){
+  document.getElementById('skillManager').classList.toggle('open');
+  if(document.getElementById('skillManager').classList.contains('open'))refreshSkills();
+});
+document.getElementById('skillRefreshBtn').addEventListener('click',refreshSkills);
+document.getElementById('skillSearch').addEventListener('input',function(){refreshSkills();});
+
+document.getElementById('skillCreateBtn').addEventListener('click',async function(){
+  var name=document.getElementById('newSkillName').value.trim();
+  var prompt=document.getElementById('newSkillPrompt').value.trim();
+  var desc=document.getElementById('newSkillDesc').value.trim();
+  var active=document.getElementById('newSkillActive').checked;
+  if(!name||!prompt){addMsg('assistant','Name and prompt required',{route:'error'});return;}
+  var res=await postJSON('/api/skill',{name:name,instructions:prompt,description:desc,active:active});
+  if(res.ok){addMsg('assistant','Skill /'+name+' created'+(active?' (active)':''),{route:'skill'});
+    document.getElementById('newSkillName').value='';document.getElementById('newSkillPrompt').value='';
+    document.getElementById('newSkillDesc').value='';document.getElementById('newSkillActive').checked=false;
+    await refreshSkills();}
+  else addMsg('assistant','Create failed: '+(res.data.detail||'unknown'),{route:'error'});
+});
+
+document.getElementById('skillImportBtn').addEventListener('click',async function(){
+  var txt=document.getElementById('skillImportBox').value.trim();
+  if(!txt){addMsg('assistant','Paste JSON to import',{route:'error'});return;}
+  var res=await postJSON('/api/skill/import',{skill:JSON.parse(txt)});
+  if(res.ok){addMsg('assistant','Skill /'+res.data.skill.name+' imported',{route:'skill'});
+    document.getElementById('skillImportBox').value='';await refreshSkills();}
+  else addMsg('assistant','Import failed: '+(res.data.detail||'unknown'),{route:'error'});
+});
 
 async function refreshModels(providerName){
   var info=await getJSON('/api/models');
@@ -310,6 +433,31 @@ async function send(){
     if(c.command==='persona'){
       addMsg('assistant',c.content||'Persona updated',{route:'persona'});
       await refreshPersona();
+      return;
+    }
+    if(c.command==='skill-maker'){
+      addMsg('assistant',c.content||(c.error||'Skill maker'),{route:'skill-maker'});
+      await refreshSkills();
+      return;
+    }
+    if(c.command==='list-skills'){
+      var names=(c.skills||[]).map(function(s){return '/'+s.name+(s.active?' [active]':'');}).join(', ');
+      addMsg('assistant','Skills ('+(c.count||0)+'): '+(names||'(none)'),{route:'list-skills'});
+      await refreshSkills();
+      return;
+    }
+    if(c.command==='export-skill'){
+      addMsg('assistant','Export /'+c.name+':\n'+c.export,{route:'export-skill'});
+      return;
+    }
+    if(c.command==='import-skill'){
+      addMsg('assistant',c.content||'Skill imported',{route:'import-skill'});
+      await refreshSkills();
+      return;
+    }
+    if(c.command==='skill-delete'){
+      addMsg('assistant',c.content||'Skill deleted',{route:'skill-delete'});
+      await refreshSkills();
       return;
     }
     var msg=(c.error)||((c.command==='auto'?'Auto '+(c.auto_enabled?'enabled':'disabled'):'OK → '+c.provider+(c.model?(' :: '+c.model):'')));

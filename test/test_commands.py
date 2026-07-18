@@ -126,6 +126,47 @@ async def main():
         await get_skill_manager().delete_skill("greet")
         print("OK  skill created, invoked, and its instructions injected into prompt")
 
+        # ── 5b. Conversational skill-maker wizard (name → prompt → no merge) ──
+        r = await handle_message("/skill-maker", "u", "c")
+        assert r.get("wizard") is True and r.get("state") == "name", r
+        r = await handle_message("reportbot", "u", "c")
+        assert r.get("state") == "prompt", r
+        r = await handle_message("Write a concise status report.", "u", "c")
+        assert r.get("state") == "merge", r
+        r = await handle_message("No", "u", "c")
+        assert r.get("command") == "skill-maker" and r.get("ok") is True, r
+        assert any(s["name"] == "reportbot" for s in await get_skill_manager().list_skills())
+        # Wizard session should now be closed.
+        from backend.api import _skill_maker_sessions
+        assert ("u", "c") not in _skill_maker_sessions
+        await get_skill_manager().delete_skill("reportbot")
+        print("OK  conversational /skill-maker wizard creates a skill")
+
+        # ── 5c. Skill management commands ───────────────────────────────────
+        await get_skill_manager().create_skill("alpha", "Be alpha.", active=True)
+        await get_skill_manager().create_skill("beta", "Be beta.")
+        r = await handle_message("/list-skills", "u", "c")
+        assert r["command"] == "list-skills" and r["count"] >= 2, r
+        r = await handle_message("/export-skill alpha", "u", "c")
+        assert r["command"] == "export-skill" and r["skill"]["name"] == "alpha", r
+        r = await handle_message('/import-skill {"name":"gamma","prompt":"Be gamma."}', "u", "c")
+        assert r["command"] == "import-skill" and r["skill"]["name"] == "gamma", r
+        r = await handle_message("/alpha delete", "u", "c")
+        assert r["command"] == "skill-delete" and r["ok"] is True, r
+        assert await get_skill_manager().get_skill("alpha") is None
+        print("OK  /list-skills, /export-skill, /import-skill, /<name> delete")
+
+        # ── 5d. Active skills auto-load into the prompt builder ─────────────
+        # 'beta' is active; a normal chat must inject its prompt automatically.
+        await get_skill_manager().set_active("beta", True)
+        await handle_message("hi", "u", "c")
+        sent = fake_route_chat.last_messages[0].content
+        assert "ACTIVE SKILL" in sent and "Be beta." in sent, sent[:400]
+        await get_skill_manager().set_active("beta", False)
+        await get_skill_manager().delete_skill("beta")
+        await get_skill_manager().delete_skill("gamma")
+        print("OK  active skills auto-load into the Prompt Builder")
+
         # ── 6. Normal chat flows through build_prompt -> route_chat ─────────
         r = await handle_message("hello there", "u", "c")
         assert r.get("content") == "reply" and r.get("route"), r

@@ -12,6 +12,8 @@ Every other unexpected exception is still re-raised so it is visible in logs
 and diagnostics.
 """
 
+import json
+
 from backend.config import Config, save_provider_runtime_state
 from backend.providers.base import Message, ChatCompletion
 from backend.providers.manager import ProviderManager
@@ -40,7 +42,9 @@ from backend.persona import (
     initialize_persona,
     PERSONA_PRESETS,
 )
-from backend.skills import SkillManager, get_skill_manager, initialize_skills
+from backend.skills import (
+    SkillManager, get_skill_manager, initialize_skills, _normalise_name,
+)
 from backend.tools import ToolManager
 from backend.messaging import BaseMessaging, IncomingMessage, MESSAGING_PLATFORMS
 from backend.jobs import JobManager
@@ -953,28 +957,48 @@ def handle_persona_command(text: str) -> tuple[bool, dict]:
     })
 
 
-async def handle_skill_maker_command(text: str) -> tuple[bool, dict]:
+# In-progress skill-maker wizard sessions, keyed by (user_id, conversation_id).
+_skill_maker_sessions = {}
+
+
+async def handle_skill_maker_command(
+    text: str, user_id: str, conversation_id: str
+) -> tuple[bool, dict]:
     """
     Parse and execute the skill-maker command.
 
-      /skill-maker <name> :: <instructions>
-      /skill-maker <name> <instructions>     (single-token name)
+      /skill-maker                         → start the conversational wizard
+      /skill-maker <name> :: <prompt>     → one-shot create (legacy shortcut)
+      /skill-maker <name> <prompt>        → one-shot create (single-token name)
 
-    Creates a persistent skill in the shared `skills` memory layer.  The skill
-    is then invocable from ANY interface via ``/<name>``.
+    The conversational wizard walks the user through:
+        name → prompt → merge? (Yes/No) → [targets] → save / merge + default.
 
-    Returns (matched, response_dict).
+    Returns (matched, response_dict).  When a wizard is started, the session is
+    recorded so the next message is routed to ``handle_skill_maker_step``.
     """
     t = (text or "").strip()
     if not t.startswith("/skill-maker"):
         return (False, {})
     parts = t.split(None, 1)
     if len(parts) < 2:
+        # Start the conversational wizard.
+        _skill_maker_sessions[(user_id, conversation_id)] = {"state": "name"}
         return (True, {
-            "command": "skill-maker", "ok": False,
-            "error": "Usage: /skill-maker <name> :: <instructions>",
+            "command": "skill-maker", "ok": True, "wizard": True, "state": "name",
+            "content": (
+                "Skill Name? (reply with the skill's name, e.g. 'XYZ'. "
+                "Send /cancel to abort.)"
+            ),
         })
     body = parts[1].strip()
+    if body.lower() == "cancel":
+        _skill_maker_sessions.pop((user_id, conversation_id), None)
+        return (True, {
+            "command": "skill-maker", "ok": True, "wizard": False,
+            "content": "Skill creation cancelled.",
+        })
+    # One-shot form (legacy shortcut) — create immediately.
     if "::" in body:
         name, instructions = body.split("::", 1)
         name, instructions = name.strip(), instructions.strip()
@@ -995,10 +1019,155 @@ async def handle_skill_maker_command(text: str) -> tuple[bool, dict]:
         return (True, {"command": "skill-maker", "ok": False, "error": str(exc)})
     return (True, {
         "command": "skill-maker", "ok": True, "skill": skill,
-        "content": (
-            f"Skill '/{skill['name']}' created. Invoke with /{skill['name']}."
-        ),
+        "content": f"Skill '/{skill['name']}' created. Invoke with /{skill['name']}.",
     })
+
+
+async def handle_skill_maker_step(
+    text: str, user_id: str, conversation_id: str
+) -> dict:
+    """Advance an in-progress skill-maker wizard based on the current state."""
+    key = (user_id, conversation_id)
+    sess = _skill_maker_sessions.get(key)
+    if sess is None:
+        return await handle_skill_maker_command(text, user_id, conversation_id)
+
+    t = (text or "").strip()
+    if t.lower() == "/cancel":
+        _skill_maker_sessions.pop(key, None)
+        return {"command": "skill-maker", "ok": True, "wizard": False,
+                "content": "Skill creation cancelled."}
+
+    state = sess.get("state")
+
+    if state == "name":
+        try:
+            _normalise_name(t)
+        except ValueError as exc:
+            return {"command": "skill-maker", "ok": False, "wizard": True,
+                    "state": "name", "content": f"{exc} Try again."}
+        sess["name"] = t
+        sess["state"] = "prompt"
+        return {"command": "skill-maker", "ok": True, "wizard": True,
+                "state": "prompt", "content": "Describe the skill."}
+
+    if state == "prompt":
+        sess["prompt"] = t
+        sess["state"] = "merge"
+        return {"command": "skill-maker", "ok": True, "wizard": True,
+                "state": "merge",
+                "content": "Merge with another skill? Reply 'Yes' or 'No'."}
+
+    if state == "merge":
+        if t.lower().startswith("y"):
+            sess["state"] = "merge_targets"
+            return {"command": "skill-maker", "ok": True, "wizard": True,
+                    "state": "merge_targets",
+                    "content": "Which skills? (comma-separated names, e.g. foo, bar)"}
+        return await _finalize_skill(sess, key, merge_names=[])
+
+    if state == "merge_targets":
+        names = [n.strip() for n in t.split(",") if n.strip()]
+        return await _finalize_skill(sess, key, merge_names=names)
+
+    # Unknown state → reset.
+    _skill_maker_sessions.pop(key, None)
+    return {"command": "skill-maker", "ok": False,
+            "content": "Skill wizard reset. Send /skill-maker to start again."}
+
+
+async def _finalize_skill(sess: dict, key: tuple, merge_names: list) -> dict:
+    """Create (and optionally merge) the skill, then close the wizard."""
+    name = sess.get("name")
+    prompt = sess.get("prompt", "")
+    sm = get_skill_manager()
+    _skill_maker_sessions.pop(key, None)
+    try:
+        if merge_names:
+            skill = await sm.merge_skills(merge_names, name, prompt, active=True)
+            content = (
+                f"Merged '/{name}' with {', '.join(merge_names)} and set as "
+                f"default (active). Invoke with /{name}."
+            )
+        else:
+            skill = await sm.create_skill(name, prompt, active=False)
+            content = f"Skill '/{name}' created. Invoke with /{name}."
+    except Exception as exc:
+        return {"command": "skill-maker", "ok": False, "error": str(exc)}
+    return {"command": "skill-maker", "ok": True, "wizard": False,
+            "skill": skill, "content": content}
+
+
+async def handle_skill_management_command(text: str) -> tuple[bool, dict]:
+    """
+    Handle the skill *management* commands (non-invocation):
+
+      /list-skills            list every stored skill
+      /export-skill <name>    return the skill as JSON
+      /import-skill <json>    create a skill from pasted JSON
+      /<name> delete          delete a skill permanently
+
+    Returns (matched, response_dict).  When not a management command, returns
+    (False, {}).  Skill *invocation* (``/<name>``) is handled separately by
+    ``match_skill_invocation``.
+    """
+    t = (text or "").strip()
+    if not t.startswith("/"):
+        return (False, {})
+
+    if t == "/list-skills":
+        return (True, {"command": "list-skills", "ok": True, "handled": True})
+
+    sm = get_skill_manager()
+
+    if t.startswith("/export-skill"):
+        name = t[len("/export-skill"):].strip().lstrip("/")
+        if not name:
+            return (True, {"command": "export-skill", "ok": False,
+                           "error": "Usage: /export-skill <name>"})
+        try:
+            skill = await sm.export_skill(name)
+        except Exception as exc:
+            return (True, {"command": "export-skill", "ok": False, "error": str(exc)})
+        return (True, {
+            "command": "export-skill", "ok": True, "name": name, "skill": skill,
+            "export": json.dumps(skill, indent=2, ensure_ascii=False),
+        })
+
+    if t.startswith("/import-skill"):
+        raw = t[len("/import-skill"):].strip()
+        if not raw:
+            return (True, {"command": "import-skill", "ok": False,
+                           "error": "Usage: /import-skill <json>"})
+        try:
+            data = json.loads(raw)
+        except Exception as exc:
+            return (True, {"command": "import-skill", "ok": False,
+                           "error": f"Invalid JSON: {exc}"})
+        try:
+            skill = await sm.import_skill(data)
+        except Exception as exc:
+            return (True, {"command": "import-skill", "ok": False, "error": str(exc)})
+        return (True, {
+            "command": "import-skill", "ok": True, "skill": skill,
+            "content": f"Skill '/{skill['name']}' imported. Invoke with /{skill['name']}.",
+        })
+
+    # "/<name> delete" — must be checked before generic invocation.
+    parts = t[1:].split(None, 1)
+    if len(parts) == 2 and parts[1].strip().lower() == "delete":
+        name = parts[0].strip()
+        if await sm.get_skill(name) is None:
+            return (True, {"command": "skill-delete", "ok": False,
+                           "error": f"Skill not found: {name!r}"})
+        removed = await sm.delete_skill(name)
+        return (True, {
+            "command": "skill-delete", "ok": bool(removed), "name": name,
+            "content": f"Skill '/{name}' deleted permanently." if removed
+            else f"Skill '/{name}' was not found.",
+        })
+
+    return (False, {})
 
 
 async def match_skill_invocation(text: str):
@@ -1007,10 +1176,40 @@ async def match_skill_invocation(text: str):
     return await sm.match(text)
 
 
+async def _combine_skill_prompts(invoked_name: str | None = None) -> str | None:
+    """
+    Build the combined skill-instructions block.
+
+    Includes every *active* skill (so the Prompt Builder loads active skills
+    automatically) plus, when invoking a specific skill, that skill's own
+    prompt (skipping it if it is already active to avoid duplication).
+    """
+    sm = get_skill_manager()
+    active = await sm.list_active()
+    parts: list = []
+    for s in active:
+        if invoked_name and s.get("name") == invoked_name:
+            continue
+        p = (s.get("prompt") or "").strip()
+        if p:
+            parts.append(p)
+    if invoked_name:
+        sk = await sm.get_skill(invoked_name)
+        if sk:
+            p = (sk.get("prompt") or "").strip()
+            if p:
+                parts.append(p)
+    return "\n\n".join(parts) if parts else None
+
+
 async def run_chat(text: str, user_id: str, conversation_id: str) -> dict:
     """Normal chat path: build prompt → route → persist. Raises on failure."""
     _metrics = get_metrics_registry()
-    enriched_prompt = await build_prompt(user_id, conversation_id, text)
+    # Active skills are loaded automatically by the Prompt Builder.
+    skill_instructions = await _combine_skill_prompts()
+    enriched_prompt = await build_prompt(
+        user_id, conversation_id, text, skill_instructions=skill_instructions
+    )
     messages = [Message(role="user", content=enriched_prompt)]
 
     import time as _time
@@ -1048,9 +1247,10 @@ async def run_chat(text: str, user_id: str, conversation_id: str) -> dict:
 async def run_skill(skill: dict, text: str, user_id: str, conversation_id: str) -> dict:
     """Skill-invocation path: inject skill instructions, then route + persist."""
     _metrics = get_metrics_registry()
-    instructions = skill.get("instructions", "")
+    # Active skills + the invoked skill's own prompt (de-duplicated).
+    skill_instructions = await _combine_skill_prompts(skill.get("name"))
     enriched_prompt = await build_prompt(
-        user_id, conversation_id, text, skill_instructions=instructions
+        user_id, conversation_id, text, skill_instructions=skill_instructions
     )
     messages = [Message(role="user", content=enriched_prompt)]
 
@@ -1098,9 +1298,11 @@ async def handle_message(text: str, user_id: str, conversation_id: str) -> dict:
       1. multi-provider command      (/provider, /model, /auto)
       2. persona command             (/persona)
       3. context command             (/compact)
-      4. skill-maker command         (/skill-maker)
-      5. skill invocation            (/<name> where <name> is a stored skill)
-      6. normal chat                 (build prompt → route → persist)
+      4. skill-maker wizard step     (raw input while a /skill-maker is in progress)
+      5. skill-maker command         (/skill-maker)
+      6. skill management command    (/list-skills, /export-skill, /import-skill, /<name> delete)
+      7. skill invocation            (/<name> where <name> is a stored skill)
+      8. normal chat                 (build prompt → route → persist)
 
     Returns a dict that any interface can render: always contains ``content``;
     command results also carry ``command``/``ok``; chat/skill results carry
@@ -1122,17 +1324,30 @@ async def handle_message(text: str, user_id: str, conversation_id: str) -> dict:
         info = await compact_context(conversation_id)
         return _compact_response(info)
 
-    # 4. Skill-maker command.
-    matched, cmd = await handle_skill_maker_command(text)
+    # 4. In-progress skill-maker wizard (route raw input to the wizard).
+    if (user_id, conversation_id) in _skill_maker_sessions:
+        return await handle_skill_maker_step(text, user_id, conversation_id)
+
+    # 5. Skill-maker command (/skill-maker … — may start a wizard).
+    matched, cmd = await handle_skill_maker_command(text, user_id, conversation_id)
     if matched:
         return cmd
 
-    # 5. Skill invocation (any stored skill).
+    # 6. Skill management commands (list / export / import / delete).
+    matched, cmd = await handle_skill_management_command(text)
+    if matched:
+        if cmd.get("command") == "list-skills":
+            skills = await get_skill_manager().list_skills()
+            cmd["skills"] = skills
+            cmd["count"] = len(skills)
+        return cmd
+
+    # 7. Skill invocation (any stored skill via /<name>).
     skill = await match_skill_invocation(text)
     if skill:
         return await run_skill(skill, text, user_id, conversation_id)
 
-    # 6. Normal chat.
+    # 8. Normal chat.
     return await run_chat(text, user_id, conversation_id)
 
 
@@ -1244,6 +1459,9 @@ __all__ = [
     "get_skill_manager",
     "handle_persona_command",
     "handle_skill_maker_command",
+    "handle_skill_maker_step",
+    "handle_skill_management_command",
+    "_skill_maker_sessions",
     "match_skill_invocation",
     "handle_message",
     "start_messaging",

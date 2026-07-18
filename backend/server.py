@@ -205,6 +205,21 @@ class SkillSetRequest(BaseModel):
     name: str
     instructions: str
     description: Optional[str] = None
+    dependencies: Optional[List[str]] = None
+    examples: Optional[List[str]] = None
+    active: bool = False
+    version: Optional[str] = None
+    created_date: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class SkillImportRequest(BaseModel):
+    skill: Dict[str, Any]
+
+
+class SkillActivateRequest(BaseModel):
+    name: str
+    active: bool = True
 
 
 class ErrorResponse(BaseModel):
@@ -928,14 +943,63 @@ async def list_skills_endpoint() -> Dict[str, Any]:
 
 @app.post("/api/skill", tags=["skills"])
 async def create_skill_endpoint(payload: SkillSetRequest) -> Dict[str, Any]:
-    """Create (or overwrite) a persistent skill."""
+    """Create (or overwrite) a persistent skill. No editing — overwrite == recreate."""
     _require_startup()
     from backend.api import get_skill_manager
 
     try:
         skill = await get_skill_manager().create_skill(
-            payload.name, payload.instructions, description=payload.description
+            payload.name, payload.instructions, description=payload.description,
+            dependencies=payload.dependencies, examples=payload.examples,
+            active=payload.active, version=payload.version,
+            created_date=payload.created_date, metadata=payload.metadata,
         )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+    return {"ok": True, "skill": skill}
+
+
+@app.post("/api/skill/import", tags=["skills"])
+async def import_skill_endpoint(payload: SkillImportRequest) -> Dict[str, Any]:
+    """Import a skill from a full exported record (JSON)."""
+    _require_startup()
+    from backend.api import get_skill_manager
+
+    try:
+        skill = await get_skill_manager().import_skill(payload.skill)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        )
+    return {"ok": True, "skill": skill}
+
+
+@app.get("/api/skill/export", tags=["skills"])
+async def export_skill_endpoint(name: str) -> Dict[str, Any]:
+    """Export a skill as its full JSON record."""
+    _require_startup()
+    from backend.api import get_skill_manager
+
+    try:
+        skill = await get_skill_manager().export_skill(name)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        )
+    return {"ok": True, "name": name, "skill": skill,
+            "export": json.dumps(skill, indent=2, ensure_ascii=False)}
+
+
+@app.post("/api/skill/active", tags=["skills"])
+async def set_skill_active_endpoint(payload: SkillActivateRequest) -> Dict[str, Any]:
+    """Activate or deactivate a skill (active skills auto-load into prompts)."""
+    _require_startup()
+    from backend.api import get_skill_manager
+
+    try:
+        skill = await get_skill_manager().set_active(payload.name, payload.active)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
@@ -945,7 +1009,7 @@ async def create_skill_endpoint(payload: SkillSetRequest) -> Dict[str, Any]:
 
 @app.delete("/api/skill", tags=["skills"])
 async def delete_skill_endpoint(name: str) -> Dict[str, Any]:
-    """Delete a persistent skill by name."""
+    """Delete a persistent skill by name (permanent; no editing)."""
     _require_startup()
     from backend.api import get_skill_manager
 
