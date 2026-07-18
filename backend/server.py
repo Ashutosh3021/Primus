@@ -172,6 +172,18 @@ class SecretSetRequest(BaseModel):
     secret_value: str
 
 
+class ProviderSetRequest(BaseModel):
+    provider: str
+
+
+class ModelSetRequest(BaseModel):
+    model: str
+
+
+class AutoSetRequest(BaseModel):
+    enabled: bool
+
+
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
@@ -279,8 +291,22 @@ async def api_status() -> Dict[str, Any]:
                 "terminal": cfg.tools.terminal,
             }.items() if v
         ]
+        auto_enabled = cfg.auto_enabled
+        current_provider = cfg.current_provider
+        providers_summary = [
+            {
+                "name": name,
+                "default_model": pcfg.get("default_model"),
+                "enabled": pcfg.get("enabled", False),
+            }
+            for name, pcfg in (cfg.providers or {}).items()
+        ]
     except Exception:
-        pass
+        provider_name = "unknown"
+        model_name = "unknown"
+        auto_enabled = False
+        current_provider = None
+        providers_summary = []
 
     # Messaging platforms with enabled flag
     try:
@@ -344,6 +370,9 @@ async def api_status() -> Dict[str, Any]:
         "version": VERSION,
         "provider": provider_name,
         "model": model_name,
+        "auto_enabled": auto_enabled,
+        "current_provider": current_provider,
+        "providers": providers_summary,
         "memory_status": memory_status,
         "connected_platforms": connected_platforms,
         "tools_enabled": tools_enabled,
@@ -577,6 +606,78 @@ async def list_stored_secrets_endpoint() -> Dict[str, Any]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# PART 2b – Multi-Provider + Multi-Model control (v1.3.0)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/providers", tags=["providers"])
+async def list_providers_endpoint() -> Dict[str, Any]:
+    """
+    Return the full multi-provider snapshot: every provider with its
+    enabled/configured flags, stored default model, available models, and
+    whether it is the current provider.  Also reports Auto Mode state.
+    """
+    from backend.api import get_providers_info
+    return get_providers_info()
+
+
+@app.get("/api/models", tags=["providers"])
+async def list_models_endpoint() -> Dict[str, Any]:
+    """
+    Return the model catalog: current provider + model, plus a per-provider
+    map of default_model / available_models / configured flag.
+    """
+    from backend.api import get_models_info
+    return get_models_info()
+
+
+@app.post("/api/provider", tags=["providers"])
+async def set_provider_endpoint(payload: ProviderSetRequest) -> Dict[str, Any]:
+    """
+    Permanently switch the active provider (persists after restart).
+
+    Restores that provider's own stored default_model automatically.
+    """
+    from backend.api import set_provider
+    try:
+        info = set_provider(payload.provider)
+        return {"success": True, **info}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+
+@app.post("/api/model", tags=["providers"])
+async def set_model_endpoint(payload: ModelSetRequest) -> Dict[str, Any]:
+    """
+    Change only the CURRENT provider's default model (persists after restart).
+
+    Strict validation: an unknown model is rejected (no fuzzy match / silent
+    switch) with an explicit list of available models.
+    """
+    from backend.api import set_model
+    res = set_model(payload.model)
+    if res.get("ok"):
+        return {"success": True, **res}
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=res.get("error", "Invalid model"),
+        headers={"X-Available-Models": ", ".join(res.get("available_models", []))},
+    )
+
+
+@app.post("/api/auto", tags=["providers"])
+async def set_auto_endpoint(payload: AutoSetRequest) -> Dict[str, Any]:
+    """
+    Enable or disable Auto Mode (rule-based task routing). Persists after restart.
+    """
+    from backend.api import set_auto
+    res = set_auto(payload.enabled)
+    return {"success": True, **res}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # PART 3 – Chat endpoint
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -585,18 +686,46 @@ async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
     """
     Send a message to the configured AI provider and return the response.
     Builds context from memory before forwarding to the provider.
+
+    Slash commands are intercepted before any AI call:
+      /provider <name>   switch active provider (restores its model)
+      /model <model>     change current provider's model (strict validation)
+      /auto              toggle Auto Mode
     """
     _require_startup()
 
-    from backend.api import chat, build_prompt, add_interaction
+    from backend.api import (
+        chat, build_prompt, add_interaction,
+        handle_command, route_chat,
+    )
     from backend.providers.base import Message
     from backend.metrics import get_metrics_registry
 
     _metrics = get_metrics_registry()
 
+    # ── Command interception ───────────────────────────────────────────────
+    user_content = payload.messages[-1]["content"] if payload.messages else ""
+    matched, cmd = handle_command(user_content)
+    if matched:
+        return {
+            "command": cmd.get("command"),
+            "ok": cmd.get("ok"),
+            "provider": cmd.get("provider"),
+            "model": cmd.get("model"),
+            "auto_enabled": cmd.get("auto_enabled"),
+            "error": cmd.get("error"),
+            "available_models": cmd.get("available_models"),
+            "available_providers": cmd.get("available_providers"),
+            "configured_providers": cmd.get("configured_providers"),
+            "content": cmd.get("error") or (
+                f"{cmd.get('command')} OK → {cmd.get('provider')}"
+                + (f" :: {cmd.get('model')}" if cmd.get("model") else "")
+                + (f" (auto={'on' if cmd.get('auto_enabled') else 'off'})" if cmd.get("command") == "auto" else "")
+            ),
+        }
+
     try:
         # Build context-aware prompt
-        user_content = payload.messages[-1]["content"] if payload.messages else ""
         enriched_prompt = await build_prompt(
             payload.user_id, payload.conversation_id, user_content
         )
@@ -605,7 +734,7 @@ async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
 
         import time as _time
         _t0 = _time.monotonic()
-        completion = await chat(
+        completion, route_info = await route_chat(
             messages,
             temperature=payload.temperature,
             max_tokens=payload.max_tokens,
@@ -641,6 +770,7 @@ async def chat_endpoint(payload: ChatRequest) -> Dict[str, Any]:
             "provider": completion.provider,
             "usage": completion.usage,
             "finish_reason": completion.finish_reason,
+            "route": route_info,
         }
 
     except Exception as exc:

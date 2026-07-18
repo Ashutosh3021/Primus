@@ -1,9 +1,62 @@
 {
-  "version": 1,
+  "version": 2,
+  "install_type": "personal",
   "provider": {
     "name": "openrouter",
     "secret_ref": "provider.openrouter.api_key",
     "model": "anthropic/claude-sonnet-4-5"
+  },
+  "providers": {
+    "openrouter": {
+      "enabled": true,
+      "secret_ref": "provider.openrouter.api_key",
+      "default_model": "anthropic/claude-sonnet-4-5"
+    },
+    "openai": {
+      "enabled": false,
+      "secret_ref": "provider.openai.api_key",
+      "default_model": "gpt-4o"
+    },
+    "gemini": {
+      "enabled": false,
+      "secret_ref": "provider.gemini.api_key",
+      "default_model": "gemini-2.5-flash"
+    },
+    "anthropic": {
+      "enabled": false,
+      "secret_ref": "provider.anthropic.api_key",
+      "default_model": "claude-sonnet-4-5"
+    },
+    "moonshot": {
+      "enabled": false,
+      "secret_ref": "provider.moonshot.api_key",
+      "default_model": "kimi-k2"
+    },
+    "glm": {
+      "enabled": false,
+      "secret_ref": "provider.glm.api_key",
+      "default_model": "glm-4"
+    },
+    "groq": {
+      "enabled": false,
+      "secret_ref": "provider.groq.api_key",
+      "default_model": "llama-3.3-70b-versatile"
+    },
+    "ollama": {
+      "enabled": false,
+      "secret_ref": null,
+      "default_model": "llama3.2"
+    }
+  },
+  "current_provider": "openrouter",
+  "auto": {
+    "enabled": false
+  },
+  "assistant": {
+    "name": "Primus",
+    "temperature": 0.7,
+    "streaming": true,
+    "system_prompt": "You are Primus, a persistent open-source AI operating system..."
   },
   "messaging": {
     "telegram": {

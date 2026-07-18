@@ -12,9 +12,11 @@ Every other unexpected exception is still re-raised so it is visible in logs
 and diagnostics.
 """
 
-from backend.config import Config
+from backend.config import Config, save_provider_runtime_state
 from backend.providers.base import Message, ChatCompletion
+from backend.providers.manager import ProviderManager
 from backend.router import AIRouter
+from backend.router.auto_router import AutoRouter, TASK_CATEGORIES
 from backend.secrets import get_secret
 from backend.exceptions import ConfigInvalidError, SecretNotFoundError
 from backend.lifecycle import get_module_registry, ModuleState
@@ -59,6 +61,16 @@ _notification_engine: NotificationEngine | None = None
 _scheduler: Scheduler | None = None
 _desktop_connector: DesktopConnector | None = None
 
+# ── Multi-Provider + Multi-Model state (v1.3.0) ──
+# The full provider map (name -> {enabled, secret_ref, default_model}).
+_providers: dict = {}
+# The currently-selected provider (used by /api/chat and messaging).
+_current_provider: str | None = None
+# Auto-routing flag.
+_auto_enabled: bool = False
+# Live authority over the provider map.
+_manager: ProviderManager | None = None
+
 _registry = get_module_registry()
 
 
@@ -66,45 +78,67 @@ _registry = get_module_registry()
 
 def initialize_router(config: Config) -> None:
     """
-    Initialise the AI router.
+    Initialise the AI router and the multi-provider state.
 
-    Transitions:
+    Multi-provider state:
+      * _providers / _current_provider / _auto_enabled are loaded from the
+        config (which already migrated legacy configs into the map).
+      * _manager is the live ProviderManager built from that map.
+
+    Active router (for /api/chat & messaging when Auto Mode is off):
       secret present  → RUNNING
       secret missing  → WAITING_FOR_CONFIG (startup continues silently)
       other error     → WAITING_FOR_CONFIG + ERROR log (keyring I/O failure etc.)
     """
-    global _router
+    global _router, _providers, _current_provider, _auto_enabled, _manager
+
+    # ── Multi-provider map ──
+    _providers = dict(config.providers or {})
+    _current_provider = config.current_provider or (
+        _providers and next(iter(_providers))
+    )
+    _auto_enabled = bool(config.auto_enabled)
+    _manager = ProviderManager(_providers, get_secret)
+
+    # ── Active router for the current provider ──
+    if not _current_provider or _current_provider not in _manager.get_providers():
+        _current_provider = _manager.get_providers() and next(
+            iter(_manager.get_providers())
+        )
+    cur_cfg = _providers.get(_current_provider, {})
     try:
-        api_key = get_secret(config.provider.secret_ref)
-        _router = AIRouter(config.provider.name, api_key, config.provider.model)
+        api_key = get_secret(cur_cfg.get("secret_ref"))
+        _router = AIRouter(_current_provider, api_key, cur_cfg.get("default_model"))
         _registry.set_running("router")
         logger.info(
-            f"AI router initialised | provider={config.provider.name} "
-            f"model={config.provider.model}"
+            f"AI router initialised | provider={_current_provider} "
+            f"model={cur_cfg.get('default_model')} | "
+            f"auto_enabled={_auto_enabled} | "
+            f"configured_providers={_manager.configured_providers()}"
         )
     except SecretNotFoundError:
         # Expected on first deploy or before Wizard is run — not an error.
         _router = None
-        _registry.set_waiting("router", config.provider.secret_ref)
+        _registry.set_waiting("router", cur_cfg.get("secret_ref"))
         logger.info(
             f"AI router waiting for configuration | "
-            f"secret_ref={config.provider.secret_ref!r} not yet stored — "
+            f"secret_ref={cur_cfg.get('secret_ref')!r} not yet stored — "
             "run the Wizard to activate"
         )
     except ConfigInvalidError as exc:
         # Unknown provider name — this IS a real config error.
         _router = None
-        _registry.set_waiting("router", config.provider.secret_ref)
+        _registry.set_waiting("router", cur_cfg.get("secret_ref"))
         logger.error(
-            f"AI router config error | provider={config.provider.name!r} | {exc}"
+            f"AI router config error | provider={_current_provider!r} | {exc}"
         )
     except Exception as exc:
         # Unexpected keyring / I/O failure — log as error but don't crash.
         _router = None
-        _registry.set_waiting("router", config.provider.secret_ref)
+        _registry.set_waiting("router", cur_cfg.get("secret_ref"))
         logger.error(
             f"AI router failed to initialise (unexpected error) | "
-            f"secret_ref={config.provider.secret_ref!r} | {exc}",
+            f"secret_ref={cur_cfg.get('secret_ref')!r} | {exc}",
             exc_info=True,
         )
 
@@ -333,20 +367,17 @@ async def _handle_incoming_message(msg: IncomingMessage) -> str:
 
 # ── Chat ─────────────────────────────────────────────────────────────────────
 
-async def chat(messages, temperature=0.7, max_tokens=None, **kwargs):
-    """Send a chat request through the active router."""
-    if _router is None:
-        state = _registry.get_state("router")
-        if state == ModuleState.WAITING_FOR_CONFIG:
-            missing = _registry.get_missing_secret("router")
-            raise ConfigInvalidError(
-                f"AI router is waiting for configuration. "
-                f"Missing secret: {missing}"
-            )
-        raise ConfigInvalidError(
-            "AI router not initialised. Complete the Wizard first."
-        )
-    return await _router.chat(messages, temperature, max_tokens, **kwargs)
+async def chat(messages, temperature=0.7, max_tokens=None, auto=None, **kwargs):
+    """
+    Send a chat request through the active router (or Auto Mode).
+
+    `auto=None` respects the persisted `_auto_enabled` flag; pass True/False to
+    override for a single call.
+    """
+    completion, _info = await route_chat(
+        messages, temperature=temperature, max_tokens=max_tokens, auto=auto, **kwargs
+    )
+    return completion
 
 
 async def chat_stream(messages, temperature=0.7, max_tokens=None, **kwargs):
@@ -364,6 +395,291 @@ async def chat_stream(messages, temperature=0.7, max_tokens=None, **kwargs):
         )
     async for chunk in _router.chat_stream(messages, temperature, max_tokens, **kwargs):
         yield chunk
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PART X – Multi-Provider + Multi-Model control (v1.3.0)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _persist_state() -> None:
+    """Write the current multi-provider state to config.json (atomic)."""
+    if _manager is None:
+        return
+    save_provider_runtime_state(
+        _manager.get_providers(),
+        _current_provider,
+        _auto_enabled,
+    )
+
+
+def set_provider(name: str) -> dict:
+    """
+    Permanently switch the active provider (command: /provider <name>).
+
+    Restores that provider's own stored default_model automatically.  Persists
+    to config.json so the choice survives restart.  Re-initialises the active
+    router for the new provider/model.
+    """
+    global _current_provider, _router
+    name = (name or "").strip().lower()
+    if _manager is None:
+        raise ConfigInvalidError("Provider manager not initialised.")
+    if name not in _manager.get_providers():
+        raise ConfigInvalidError(
+            f"Unknown provider: {name}. "
+            f"Available providers: {list(_manager.get_providers().keys())}"
+        )
+
+    # Activate the provider and restore its stored default model.
+    _current_provider = name
+    _manager.set_enabled(name, True)  # selecting a provider implies intent to use it
+
+    cur_cfg = _manager.get_provider_config(name)
+    model = cur_cfg.get("default_model") or _manager.get_default_model(name)
+    _manager.set_default_model(name, model)
+
+    # Re-initialise the active router for the new selection.
+    try:
+        api_key = get_secret(cur_cfg.get("secret_ref"))
+        _router = AIRouter(name, api_key, model)
+        _registry.set_running("router")
+    except SecretNotFoundError:
+        _router = None
+        _registry.set_waiting("router", cur_cfg.get("secret_ref"))
+    except ConfigInvalidError:
+        _router = None
+        _registry.set_waiting("router", cur_cfg.get("secret_ref"))
+
+    _persist_state()
+    logger.info(f"Active provider switched → {name} (model={model})")
+    return {
+        "provider": name,
+        "model": model,
+        "auto_enabled": _auto_enabled,
+        "configured": _manager.is_configured(name),
+    }
+
+
+def set_model(model: str) -> dict:
+    """
+    Change only the CURRENT provider's default model (command: /model <model>).
+
+    Validation is strict: if the model is NOT in the provider's known catalog
+    we DO NOT guess, fuzzy-match, or silently switch.  We return an explicit
+    error listing the available models instead.
+    """
+    global _router
+    model = (model or "").strip()
+    if _manager is None or not _current_provider:
+        return {"ok": False, "error": "No provider selected."}
+    name = _current_provider
+
+    if not _manager.is_model_available(name, model):
+        available = _manager.available_models(name)
+        return {
+            "ok": False,
+            "provider": name,
+            "error": f"Model not available for provider {name}",
+            "available_models": available,
+        }
+
+    # Apply + persist.
+    _manager.set_default_model(name, model)
+    cur_cfg = _manager.get_provider_config(name)
+    try:
+        api_key = get_secret(cur_cfg.get("secret_ref"))
+        _router = AIRouter(name, api_key, model)
+        _registry.set_running("router")
+    except Exception:
+        _router = None
+    _persist_state()
+    logger.info(f"Model changed → {name} :: {model}")
+    return {
+        "ok": True,
+        "provider": name,
+        "model": model,
+        "auto_enabled": _auto_enabled,
+    }
+
+
+def set_auto(enabled: bool) -> dict:
+    """
+    Enable/disable Auto Mode (command: /auto toggles).
+
+    Persists to config.json so the flag survives restart.
+    """
+    global _auto_enabled
+    _auto_enabled = bool(enabled)
+    _persist_state()
+    logger.info(f"Auto Mode → {_auto_enabled}")
+    return {
+        "auto_enabled": _auto_enabled,
+        "provider": _current_provider,
+        "model": _manager.get_default_model(_current_provider) if _manager else None,
+    }
+
+
+def handle_command(text: str) -> tuple[bool, dict]:
+    """
+    Parse a chat message for slash commands.
+
+    Returns (matched, response_dict).  When matched is True, the caller should
+    NOT forward the message to the AI — it was a command.
+
+    Supported:
+      /provider <name>   switch active provider (restores its model)
+      /model <model>     change current provider's model (strict validation)
+      /auto              toggle Auto Mode
+    """
+    if _manager is None:
+        return (False, {})
+    t = (text or "").strip()
+
+    if t.startswith("/provider"):
+        parts = t.split()
+        if len(parts) < 2:
+            return (True, {
+                "command": "provider",
+                "ok": False,
+                "error": "Usage: /provider <name>",
+                "available_providers": list(_manager.get_providers().keys()),
+                "configured_providers": _manager.configured_providers(),
+            })
+        try:
+            info = set_provider(parts[1])
+            return (True, {"command": "provider", "ok": True, **info})
+        except Exception as exc:
+            return (True, {
+                "command": "provider",
+                "ok": False,
+                "error": str(exc),
+                "available_providers": list(_manager.get_providers().keys()),
+            })
+
+    if t.startswith("/model"):
+        parts = t.split()
+        if len(parts) < 2:
+            return (True, {
+                "command": "model",
+                "ok": False,
+                "error": "Usage: /model <model>",
+                "available_models": _manager.available_models(_current_provider),
+            })
+        res = set_model(parts[1])
+        res["command"] = "model"
+        return (True, res)
+
+    if t == "/auto":
+        res = set_auto(not _auto_enabled)
+        res["command"] = "auto"
+        return (True, res)
+
+    return (False, {})
+
+
+def get_providers_info() -> dict:
+    """
+    Snapshot of every provider for the UI / GET /api/providers.
+
+    Each entry reports whether it is enabled, configured (secret present),
+    its stored default_model, its available models, and whether it is current.
+    """
+    if _manager is None:
+        return {
+            "current_provider": None,
+            "auto_enabled": False,
+            "providers": [],
+        }
+    providers = []
+    for name in _manager.get_providers():
+        cfg = _manager.get_provider_config(name) or {}
+        providers.append({
+            "name": name,
+            "enabled": _manager.is_enabled(name),
+            "configured": _manager.is_configured(name),
+            "default_model": cfg.get("default_model") or _manager.get_default_model(name),
+            "available_models": _manager.available_models(name),
+            "is_current": name == _current_provider,
+        })
+    return {
+        "current_provider": _current_provider,
+        "auto_enabled": _auto_enabled,
+        "providers": providers,
+    }
+
+
+def get_models_info() -> dict:
+    """
+    Model listing for GET /api/models.
+
+    Returns the current provider + model, plus a per-provider map of
+    default_model / available_models / configured flag.
+    """
+    if _manager is None:
+        return {"current_provider": None, "current_model": None, "providers": {}}
+    per_provider = {}
+    for name in _manager.get_providers():
+        cfg = _manager.get_provider_config(name) or {}
+        per_provider[name] = {
+            "default_model": cfg.get("default_model") or _manager.get_default_model(name),
+            "available_models": _manager.available_models(name),
+            "configured": _manager.is_configured(name),
+        }
+    return {
+        "current_provider": _current_provider,
+        "current_model": _manager.get_default_model(_current_provider),
+        "providers": per_provider,
+    }
+
+
+async def route_chat(
+    messages,
+    temperature: float = 0.7,
+    max_tokens=None,
+    auto: bool | None = None,
+    **kwargs,
+) -> tuple[ChatCompletion, dict]:
+    """
+    Route a chat request, honouring Auto Mode.
+
+    Returns (completion, route_info) where route_info describes how the
+    request was routed (mode, provider, model, category).
+
+      * auto=True  → classify + select across configured providers (with
+                     automatic fallback).  If nothing is configured for the
+                     classified category, falls back to the active router.
+      * auto=False → use the active router (current provider + model).
+    """
+    use_auto = _auto_enabled if auto is None else bool(auto)
+
+    if use_auto and _manager is not None:
+        auto_router = AutoRouter(_manager, _current_provider)
+        completion, info = await auto_router.route(
+            messages, temperature=temperature, max_tokens=max_tokens, **kwargs
+        )
+        if completion is not None:
+            return completion, info
+        # No configured candidate → fall through to active router below.
+
+    if _router is None:
+        state = _registry.get_state("router")
+        if state == ModuleState.WAITING_FOR_CONFIG:
+            missing = _registry.get_missing_secret("router")
+            raise ConfigInvalidError(
+                f"AI router is waiting for configuration. "
+                f"Missing secret: {missing}"
+            )
+        raise ConfigInvalidError(
+            "AI router not initialised. Complete the Wizard first."
+        )
+
+    completion = await _router.chat(messages, temperature, max_tokens, **kwargs)
+    return completion, {
+        "mode": "manual",
+        "category": None,
+        "provider": _router.provider_name,
+        "model": _router.provider.model,
+    }
 
 
 # ── Capabilities ──────────────────────────────────────────────────────────────
@@ -502,6 +818,13 @@ __all__ = [
     "initialize_desktop",
     "chat",
     "chat_stream",
+    "route_chat",
+    "handle_command",
+    "set_provider",
+    "set_model",
+    "set_auto",
+    "get_providers_info",
+    "get_models_info",
     "get_capabilities",
     "add_memory",
     "get_memory",

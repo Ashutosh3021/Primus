@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primus · Chat</title>
+<style>
+  :root{
+    --abyss:#0b0f14; --vellum:#10151c; --sage:#8aa0a8; --bone:#e7eef0;
+    --bioglow:#3FE8B0; --rust:#ff6b6b; --sage-line:#22303a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0f14,#0d131a);color:var(--bone);
+    font-family:'Public Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;height:100vh;display:flex;flex-direction:column}
+  header{padding:12px 18px;border-bottom:1px solid var(--sage-line);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  header h1{font-family:'Fraunces',serif;font-size:1.1rem;margin:0;color:var(--bioglow)}
+  .pill{font-size:.72rem;border:1px solid var(--sage-line);border-radius:999px;padding:4px 10px;color:var(--sage)}
+  .pill b{color:var(--bone)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-left:auto}
+  select,button,input[type=text]{background:var(--vellum);color:var(--bone);border:1px solid var(--sage-line);
+    border-radius:8px;padding:7px 10px;font-size:.82rem;font-family:inherit}
+  button{cursor:pointer}
+  button.primary{background:var(--bioglow);color:#04130d;border-color:var(--bioglow);font-weight:600}
+  button.toggle.on{background:rgba(63,232,176,.16);color:var(--bioglow);border-color:var(--bioglow)}
+  main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:14px 18px;gap:10px}
+  #route{font-size:.74rem;color:var(--sage);min-height:1.1em}
+  #route b{color:var(--bioglow)}
+  #log{flex:1;overflow:auto;border:1px solid var(--sage-line);border-radius:10px;padding:12px;background:var(--vellum);display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:80%;padding:9px 12px;border-radius:12px;font-size:.86rem;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+  .msg.user{align-self:flex-end;background:rgba(63,232,176,.14);border:1px solid rgba(63,232,176,.3)}
+  .msg.assistant{align-self:flex-start;background:#0e1620;border:1px solid var(--sage-line)}
+  .msg .meta{display:block;font-size:.66rem;color:var(--sage);margin-top:5px}
+  .composer{display:flex;gap:8px}
+  .composer input{flex:1}
+  .hint{font-size:.7rem;color:var(--sage)}
+  .err{color:var(--rust)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Primus · Chat</h1>
+  <span class="pill">Provider: <b id="pillProvider">—</b></span>
+  <span class="pill">Model: <b id="pillModel">—</b></span>
+  <span class="pill">Auto: <b id="pillAuto">off</b></span>
+  <div class="controls">
+    <label class="hint">Provider</label>
+    <select id="providerSel"></select>
+    <label class="hint">Model</label>
+    <select id="modelSel"></select>
+    <button id="autoBtn" class="toggle">Auto: off</button>
+  </div>
+</header>
+
+<main>
+  <div id="route">Route: <b>—</b></div>
+  <div id="log"></div>
+  <div class="composer">
+    <input id="input" type="text" placeholder="Message Primus…  (try /provider openai, /model gpt-4o, /auto)" autocomplete="off">
+    <button id="sendBtn" class="primary">Send</button>
+  </div>
+  <div class="hint">Commands: <code>/provider &lt;name&gt;</code> · <code>/model &lt;model&gt;</code> · <code>/auto</code></div>
+</main>
+
+<script>
+var API = (window.API_BASE || '') ;
+async function getJSON(u){var r=await fetch(API+u);return r.json();}
+async function postJSON(u,body){var r=await fetch(API+u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {ok:r.ok,status:r.status,data:await r.json().catch(function(){return{}})};}
+
+var state={providers:[],current:null,auto:false,model:null};
+
+async function refresh(){
+  try{
+    var info=await getJSON('/api/providers');
+    state.providers=info.providers||[];
+    state.current=info.current_provider;
+    state.auto=!!info.auto_enabled;
+    var sel=document.getElementById('providerSel');
+    sel.innerHTML='';
+    state.providers.forEach(function(p){
+      var o=document.createElement('option');o.value=p.name;o.textContent=p.name+(p.is_current?' ✓':'')+(p.configured?'':' (no key)');
+      if(p.is_current)o.selected=true;sel.appendChild(o);
+    });
+    await refreshModels(sel.value);
+    document.getElementById('pillProvider').textContent=state.current||'—';
+    document.getElementById('pillAuto').textContent=state.auto?'on':'off';
+    var ab=document.getElementById('autoBtn');
+    ab.textContent='Auto: '+(state.auto?'on':'off');
+    ab.classList.toggle('on',state.auto);
+  }catch(e){
+    addMsg('assistant','Could not reach backend: '+e.message);
+  }
+}
+
+async function refreshModels(providerName){
+  var info=await getJSON('/api/models');
+  var pm=(info.providers&&info.providers[providerName])||{};
+  state.model=pm.default_model||null;
+  var sel=document.getElementById('modelSel');
+  sel.innerHTML='';
+  (pm.available_models||[]).forEach(function(m){
+    var o=document.createElement('option');o.value=m;o.textContent=m;
+    if(m===pm.default_model)o.selected=true;sel.appendChild(o);
+  });
+  if(!pm.available_models||!pm.available_models.length){
+    var o=document.createElement('option');o.value='';o.textContent='free-text / local';sel.appendChild(o);
+  }
+  document.getElementById('pillModel').textContent=pm.default_model||'—';
+}
+
+function addMsg(role,text,meta){
+  var log=document.getElementById('log');
+  var d=document.createElement('div');d.className='msg '+role;
+  d.textContent=text;
+  if(meta){var s=document.createElement('span');s.className='meta';s.textContent=meta;d.appendChild(s);}
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+document.getElementById('providerSel').addEventListener('change',async function(){
+  var res=await postJSON('/api/provider',{provider:this.value});
+  if(res.ok){await refresh();addMsg('assistant','Switched to '+this.value+' → '+state.model,{route:'provider change'});}
+  else addMsg('assistant',res.data.detail||'Failed to switch provider',{route:'error'});
+});
+
+document.getElementById('modelSel').addEventListener('change',async function(){
+  var res=await postJSON('/api/model',{model:this.value});
+  if(res.ok){await refresh();addMsg('assistant','Model set → '+this.value,{route:'model change'});}
+  else addMsg('assistant',res.data.detail||'Invalid model',{route:'error'});
+});
+
+document.getElementById('autoBtn').addEventListener('click',async function(){
+  var res=await postJSON('/api/auto',{enabled:!state.auto});
+  if(res.ok){state.auto=res.data.auto_enabled;await refresh();}
+});
+
+async function send(){
+  var inp=document.getElementById('input');
+  var text=inp.value.trim();if(!text)return;
+  inp.value='';
+  addMsg('user',text);
+  var res=await postJSON('/api/chat',{messages:[{role:'user',content:text}]});
+  if(res.ok && res.data.command){
+    var c=res.data;
+    var msg=(c.error)||((c.command==='auto'?'Auto '+(c.auto_enabled?'enabled':'disabled'):'OK → '+c.provider+(c.model?(' :: '+c.model):'')));
+    addMsg('assistant',msg,{route:c.command});
+    if(c.available_models)addMsg('assistant','Available: '+c.available_models.join(', '),{route:'hint'});
+    await refresh();
+    return;
+  }
+  if(res.ok){
+    var r=res.data.route||{};
+    var meta='route: '+(r.mode||'?')+(r.provider?(' | '+r.provider):'')+(r.model?(' :: '+r.model):'')+(r.category?(' | '+r.category):'');
+    addMsg('assistant',res.data.content||'(empty)',{route:meta});
+    document.getElementById('route').innerHTML='Route: <b>'+(r.mode||'?')+'</b> · '+(r.provider||'?')+(r.model?(' :: '+r.model):'')+(r.category?(' · '+r.category):'');
+    await refresh();
+  }else{
+    addMsg('assistant','Error: '+(res.data.detail||res.status),{route:'error'});
+  }
+}
+
+document.getElementById('sendBtn').addEventListener('click',send);
+document.getElementById('input').addEventListener('keydown',function(e){if(e.key==='Enter')send();});
+
+refresh();
+</script>
+</body>
+</html>

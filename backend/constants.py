@@ -5,7 +5,7 @@ Constants for Primus backend.
 from pathlib import Path
 
 # Version
-VERSION: int = 1
+VERSION: int = 2
 
 # Paths
 BASE_DIR: Path = Path(__file__).parent.parent

@@ -16,3 +16,5 @@
 {"timestamp": "2026-07-04T18:22:41.242573Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
 {"timestamp": "2026-07-04T18:22:53.613366Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
 {"timestamp": "2026-07-06T23:06:11.535332Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
+{"timestamp": "2026-07-18T15:14:16.699719Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: openrouter, model: openai/gpt-4o"}
+{"timestamp": "2026-07-18T15:14:16.700324Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: anthropic, model: claude-sonnet-4-5"}

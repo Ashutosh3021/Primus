@@ -349,7 +349,10 @@ var S = {
     notifyItems: ['finished_jobs','failed_jobs','daily_briefing',
                   'internship_alerts','repo_changes','updates'],
     storeConversations: true, storeProjects: true,
-    storeImages: false, storeVideos: false, storeConclusionsOnly: true
+    storeImages: false, storeVideos: false, storeConclusionsOnly: true,
+    // ── Multi-Provider map (v1.3.0) ──
+    // providers[name] = { enabled, key, model }
+    providers: {}
   }
 };
 
@@ -1064,6 +1067,86 @@ STEPS.push({id:'privacy', section:'Privacy',
 });
 
 // ──────────────────────────────────────────
+//  11b · Multi-Provider (v1.3.0)
+// ──────────────────────────────────────────
+STEPS.push({id:'providers', section:'AI Provider',
+  title:'Configure additional providers (optional).',
+  sub:'Primus is multi-provider. Add API keys for as many providers as you like and pick a default model for each. Switch between them any time with /provider or the Chat page. Your first provider above stays the active one.',
+  render:function(){
+    // Seed the providers map from the single-provider selection made earlier.
+    if(!S.a.providers || !Object.keys(S.a.providers).length){
+      S.a.providers = {};
+      PROVIDERS.forEach(function(p){
+        var isPrimary = (p.v===S.a.provider);
+        S.a.providers[p.v] = {
+          enabled: isPrimary,
+          key: isPrimary ? S.a.apiKey : '',
+          model: isPrimary ? (S.a.model==='__custom__'?S.a.modelCustom:(S.a.model||'')) : (MODELS_BY_PROVIDER[p.v] && MODELS_BY_PROVIDER[p.v]!=='__freetext__' && MODELS_BY_PROVIDER[p.v][0] ? MODELS_BY_PROVIDER[p.v][0].v : '')
+        };
+      });
+    }
+    var h = '<div class="prov-grid">';
+    PROVIDERS.forEach(function(p){
+      var pc = S.a.providers[p.v] || {enabled:false,key:'',model:''};
+      var models = MODELS_BY_PROVIDER[p.v];
+      var isOllama = (p.v==='ollama');
+      h += '<div class="prov-card" data-p="'+p.v+'">';
+      h += '<label class="prov-head"><input type="checkbox" class="prov-enable" data-p="'+p.v+'" '+(pc.enabled?'checked':'')+'> <strong>'+p.l+'</strong></label>';
+      h += '<div class="prov-desc">'+p.d+'</div>';
+      if(!isOllama){
+        h += '<div class="field-wrap" style="margin-top:8px"><div class="field-label">API Key</div>';
+        h += '<input type="password" class="inp prov-key" data-p="'+p.v+'" placeholder="Paste key…" value="'+(pc.key||'')+'" autocomplete="off" spellcheck="false"></div>';
+      } else {
+        h += '<div class="prov-desc" style="margin-top:8px;opacity:.8">Runs locally — no key needed.</div>';
+      }
+      h += '<div class="field-wrap" style="margin-top:8px"><div class="field-label">Default Model</div>';
+      if(models==='__freetext__'){
+        h += '<input class="inp prov-model" data-p="'+p.v+'" placeholder="e.g. llama3.2" value="'+(pc.model||'')+'">';
+      } else {
+        h += '<select class="inp prov-model" data-p="'+p.v+'">';
+        (models||[]).forEach(function(m){
+          if(m.v==='__custom__'){ h += '<option value="__custom__"'+(pc.model==='__custom__'?' selected':'')+'>Custom Model…</option>'; return; }
+          h += '<option value="'+m.v+'"'+(pc.model===m.v?' selected':'')+'>'+m.l+'</option>';
+        });
+        h += '</select>';
+        h += '<input class="inp prov-model-custom" data-p="'+p.v+'" placeholder="Custom model ID" value="'+(pc.model&&pc.model==='__custom__'?'':(pc.model||''))+'" style="margin-top:6px;display:'+(pc.model==='__custom__'?'block':'none')+'">';
+      }
+      h += '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+    h += '<style>.prov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:6px}.prov-card{border:1px solid var(--sage-line);border-radius:10px;padding:12px;background:var(--abyss)}.prov-head{display:flex;gap:8px;align-items:center;cursor:pointer}.prov-desc{font-size:.8rem;color:var(--sage);margin-top:4px}</style>';
+    return h;
+  },
+  validate:function(){
+    // Optional step — always valid. At least the primary provider is enabled.
+    return true;
+  },
+  save:function(){
+    var enables = document.querySelectorAll('.prov-enable');
+    enables.forEach(function(cb){
+      var p = cb.getAttribute('data-p');
+      if(!S.a.providers[p]) S.a.providers[p] = {enabled:false,key:'',model:''};
+      S.a.providers[p].enabled = cb.checked;
+    });
+    document.querySelectorAll('.prov-key').forEach(function(inp){
+      var p = inp.getAttribute('data-p');
+      S.a.providers[p].key = inp.value.trim();
+    });
+    document.querySelectorAll('.prov-model').forEach(function(sel){
+      var p = sel.getAttribute('data-p');
+      var val = sel.value;
+      if(val==='__custom__'){
+        var custom = document.querySelector('.prov-model-custom[data-p="'+p+'"]');
+        S.a.providers[p].model = custom ? custom.value.trim() : '';
+      } else {
+        S.a.providers[p].model = val;
+      }
+    });
+  }
+});
+
+// ──────────────────────────────────────────
 //  12 · Final Review
 // ──────────────────────────────────────────
 STEPS.push({id:'review', section:'Review',
@@ -1495,6 +1578,23 @@ function buildConfig(){
   // System prompt
   cfg.assistant.system_prompt = a.systemPrompt;
 
+  // ── Multi-Provider map (v1.3.0) ───────────────────────────────────────────
+  // Each provider keeps its OWN persistent config: enabled flag, secret_ref,
+  // and default_model.  The provider chosen in step 1 is the active one.
+  cfg.providers = {};
+  PROVIDERS.forEach(function(p){
+    var pc = (a.providers && a.providers[p.v]) || {enabled:false, key:'', model:''};
+    var modelVal = pc.model==='__custom__' ? '' : (pc.model || '');
+    if(p.v==='ollama') modelVal = pc.model || 'llama3.2';
+    cfg.providers[p.v] = {
+      enabled: (p.v===a.provider) ? true : !!pc.enabled,
+      secret_ref: (p.v==='ollama') ? null : 'provider.'+p.v+'.api_key',
+      default_model: modelVal
+    };
+  });
+  cfg.current_provider = a.provider;
+  cfg.auto = { enabled: false };
+
   // Messaging
   PLATFORMS_LIST.forEach(function(p){
     var enabled = a.platforms.indexOf(p.k)!==-1;
@@ -1535,6 +1635,7 @@ function buildConfig(){
     model:            a.model,
     modelCustom:      a.modelCustom,
     ollamaModel:      a.ollamaModel,
+    providers:        a.providers,
     assistantName:    a.assistantName,
     systemPrompt:     a.systemPrompt,
     temperature:      a.temperature,
@@ -1598,6 +1699,15 @@ function doLaunch(){
   // Skip any token that is '__stored__' — it is already in the backend keyring/.env
   var a=S.a;
   if(a.provider!=='ollama'&&a.apiKey&&a.apiKey!=='__stored__') saveSecret('provider.'+a.provider+'.api_key',a.apiKey);
+  // Persist every enabled provider's API key (multi-provider, v1.3.0)
+  if(a.providers){
+    PROVIDERS.forEach(function(p){
+      var pc=a.providers[p.v];
+      if(pc&&pc.enabled&&p.v!=='ollama'&&pc.key&&pc.key!=='__stored__'){
+        saveSecret('provider.'+p.v+'.api_key', pc.key);
+      }
+    });
+  }
   if(a.platforms.indexOf('telegram')!==-1&&a.tgToken&&a.tgToken!=='__stored__') saveSecret('messaging.telegram.bot_token',a.tgToken);
   if(a.platforms.indexOf('discord') !==-1&&a.dcToken&&a.dcToken!=='__stored__') saveSecret('messaging.discord.bot_token',a.dcToken);
   if(a.platforms.indexOf('whatsapp')!==-1&&a.waToken&&a.waToken!=='__stored__') saveSecret('messaging.whatsapp.access_token',a.waToken);
