@@ -177,8 +177,7 @@ Incoming Request → Router → Selected Provider (per config.json) → Normaliz
 
 Adding a new provider means writing one adapter that satisfies `AIProvider` — zero changes to routing logic, memory, or messaging.
 
-**v1 providers:** OpenRouter, Anthropic, Ollama (covers paid, free-tier, and local — proves the abstraction works across all three categories)
-**Later providers:** OpenAI, Google AI Studio, Kimi, Z.AI, Groq
+**Implemented providers (v1.3.0):** OpenRouter, OpenAI, Anthropic, Google Gemini, Groq, Moonshot/Kimi, Z.AI/GLM, Ollama (local). The `ProviderManager` (§4b) treats them uniformly; adding another is one adapter file.
 
 ### 4a. Provider Capabilities
 
@@ -208,6 +207,34 @@ Not supported → fail early with a clear message, or fall back to a capable pro
 ```
 
 This turns "the model silently ignored the image" into "Primus told the user upfront that the configured provider doesn't support vision." Capability flags are stored as static metadata per adapter, not queried live — they change rarely enough that a manual update on provider API changes is acceptable for v1.
+
+### 4b. Provider Manager (multi-provider)
+
+v1.3.0 introduced a **`ProviderManager`** (`backend/providers/manager.py`) that
+owns the persistent, per-provider configuration. `config.json` carries a
+`providers` map (`name → {enabled, secret_ref, default_model}`), a
+`current_provider`, and an `auto_enabled` flag. The manager:
+
+- Builds a provider from its `secret_ref` (resolved at runtime, never stored).
+- Exposes `configured_providers()` / `get_providers()` for routing and the API.
+- Writes runtime changes back to `config.json` atomically (`.tmp` rename) so a
+  crash mid-write cannot corrupt the file.
+
+Switching providers/models (`/provider`, `/model`) is an O(1) in-memory state
+change plus one atomic write — **no restart required**.
+
+### 4c. Auto Router
+
+Alongside the manual **`AIRouter`** (active router for the selected provider),
+v1.3.0 adds an **`AutoRouter`** (`backend/router/auto_router.py`):
+
+```
+Auto mode ON  → AutoRouter scores all configured providers
+                (cost, capability match, recent health) → best provider per request
+Auto mode OFF → AIRouter uses the manually selected provider/model
+```
+
+`/auto` toggles the mode, persisted in `config.json`.
 
 ---
 
@@ -273,6 +300,55 @@ Storage principle: **store conclusions, not raw data.**
 - ❌ Store the whole repo → ✅ Store project summary, stack, architecture, goals
 
 **v1 scope:** Short-term + Long-term only, backed by a simple local store (SQLite or JSON, decided during scaffolding). Context and Knowledge layers depend on the Context Engine and Git Learning modules (later phases).
+
+### 6a. Persona Architecture (v1.3.0)
+
+One **global** persona applies to every interface (REST, Telegram, Dashboard).
+Personas live in `backend/persona.py` as `PERSONA_PRESETS` — a dictionary of
+9 built-in presets, each a structured 5-field definition:
+
+```
+System Prompt · Prompt Rules · Behavior · Response Style · Constraints
+```
+
+State:
+
+- `PersonaManager` holds the active persona (preset name or `custom`).
+- `save_persona_config(active, custom_text)` persists atomically to
+  `config.json` (`persona` section).
+- The active persona text is rendered and injected into every prompt the
+  Context Engine assembles (`get_active_persona_text()`).
+- Any non-preset `/persona <text>` input becomes the **custom** persona.
+
+Endpoints: `GET /api/personas`, `POST /api/persona`. Commands: `/persona`,
+`/persona <preset>`, `/persona <custom text>`.
+
+### 6b. Skills Architecture (v1.3.0)
+
+Skills are reusable, named instruction sets. `backend/skills.py` defines a
+`SkillManager` backed by a `SkillStore` (SQLite):
+
+- `create_skill(name, prompt, active)` / `get_skill` / `delete_skill`
+- `set_active(name, bool)` — active skills auto-load into the Prompt Builder
+- `list_skills`, `export_skill(name)` (→ JSON), `import_skill(json)`
+- `search_skills(query)` for the Skill Manager UI
+
+Invocation:
+
+```
+/user sends "/greet friend"
+   ↓
+handle_message → skill dispatch → skill "greet" found
+   ↓
+SkillManager renders "ACTIVE SKILL: <prompt>" and injects it into the prompt
+   ↓
+Provider responds using the skill instructions
+```
+
+Creation supports both one-shot (`/skill-maker name :: prompt`) and a guided
+wizard (name → prompt → confirm) when invoked with no args. Endpoints:
+`GET/POST /api/skill`, `POST /api/skill/import`, `GET /api/skill/export`,
+`POST /api/skill/active`, `DELETE /api/skill`.
 
 ---
 
@@ -348,6 +424,20 @@ Provider
 ```
 
 This is a **later-phase system** — it depends on Memory and Git Learning already producing structured, queryable data. Building it before Memory exists means it has nothing to select from.
+
+### 9a. Live implementation (v1.3.0)
+
+The Context Engine is implemented in **`backend/context/`** (the live module):
+
+- `ContextEngine` selects relevant slices from short/long-term memory,
+  Project memory (Git Learning), and the active persona + skills.
+- `PromptBuilder` assembles the final system + user prompt, honouring a token
+  budget (`ContextConfig.max_tokens`, `prune_threshold`).
+- `/compact` summarizes a long session to reclaim budget.
+
+> **Note:** `backend/memory/` is a **legacy duplicate** of `backend/context/`
+> (superseded). It is not used by the runtime — only by `verify_project.py`.
+> Scheduled for removal in v1.4.0.
 
 ---
 
@@ -430,13 +520,16 @@ Device tokens are revocable individually (lost laptop, compromised machine) with
 /backend
   /providers                # one file per AI provider, all implement AIProvider + capabilities
   /messaging                # one file per platform, all normalize to common shape
-  /memory                   # short-term / long-term / context / knowledge
+  /context                  # LIVE Context Engine + PromptBuilder (relevance selection) — §9a
+  /memory                   # LEGACY context engine (superseded by /context) — remove in v1.4.0
   /tools                    # one file per tool, all implement Tool interface, self-register (§8a)
-  /jobs                     # scheduler + worker + checkpointing
-  /context_engine           # relevance selection logic + cron scheduler
+  /jobs                     # scheduler + worker + checkpointing + notifications
+  /context_engine           # cron Scheduler + NotificationEngine
   /git-learning             # repo → structured summary extraction, job registration
   /desktop                  # DesktopConnector + local tools + AutomationEngine
-  /router                   # provider selection logic, capability checks
+  /router                   # AIRouter (manual) + AutoRouter (§4c), capability checks
+  /persona.py               # global persona presets + active persona state (§6a)
+  /skills.py                # SkillManager: create/invoke/import/export/delete (§6b)
   /secrets                  # OS keyring / .env resolution, secret_ref lookups (§2a)
   /logger.py                # structured logger, redaction rules (§13)
   /db                       # schema, async SQLite stores
@@ -500,6 +593,24 @@ API layer validates, forwards to Memory module, returns result
 ```
 
 This is deliberately boring — a set of typed functions per module (`api.provider.send()`, `api.memory.read()`, `api.jobs.schedule()`) — not a network-hop microservice layer. The value isn't distribution, it's **enforced independence**: a module can be gutted and rewritten as long as its `api.*` surface stays the same, which is what makes the phase-by-phase build order in ROADMAP.md actually safe to follow without earlier phases breaking as later ones are added.
+
+### 15a. Unified Runtime (v1.3.0)
+
+There is **exactly one** runtime entry point:
+
+```
+backend.api.handle_message(text, user_id, conversation_id) -> dict
+```
+
+- **REST** (`/api/chat`) → `chat_endpoint` → `handle_message`
+- **Telegram** (long-polling bot) → `IncomingMessage` → `_handle_incoming_message` → `handle_message`
+- **Dashboards** (Chat, Ledger, Wizard, Promotional) → `fetch('/api/chat')` → same path
+
+`handle_message` dispatches slash-commands (provider, model, auto, persona,
+compact, skill-maker, skills) and otherwise builds context + routes to the AI
+provider. No interface owns AI logic, which guarantees identical behavior
+everywhere. This is verified by `test/test_commands.py` (REST and Telegram both
+exercise the same `ProviderManager` / persona / skill state).
 
 ---
 

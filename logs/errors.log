@@ -1023,3 +1023,384 @@
 {"timestamp": "2026-07-18T23:28:15.848574Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\AppData\\Local\\Temp\\primus_audit_test.db"}
 {"timestamp": "2026-07-18T23:28:16.118356Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
 {"timestamp": "2026-07-18T23:28:16.162225Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Job manager started"}
+{"timestamp": "2026-07-18T23:32:49.695759Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:32:50.031275Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:32:50.038306Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:32:50.054016Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:32:50.054016Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:32:50.054016Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:32:50.054016Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:32:50.054016Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:32:50.054016Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:32:50.925787Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:32:51.159395Z", "level": "INFO", "name": "errors.backend.git-learning", "message": "[GIT_LEARN] Completed scan of Primus | languages=['Python', 'HTML', 'JavaScript'] | frameworks=['FastAPI', 'Pydantic', 'Uvicorn']"}
+{"timestamp": "2026-07-18T23:32:51.164909Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:32:51.164909Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:33:05.233037Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:33:05.264577Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:33:05.273398Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:33:05.330514Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:33:05.330514Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:33:05.330514Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:33:05.330514Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:33:05.330514Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:33:05.330514Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:33:05.336867Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:33:05.343692Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:33:05.343692Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:33:05.343692Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:33:05.343692Z", "level": "INFO", "name": "errors.backend.api", "message": "Active provider switched \u2192 openai (model=gpt-4o)"}
+{"timestamp": "2026-07-18T23:33:05.343692Z", "level": "INFO", "name": "errors.backend.api", "message": "Active provider switched \u2192 openrouter (model=anthropic/claude-sonnet-4-5)"}
+{"timestamp": "2026-07-18T23:33:05.545643Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /greet (active=False)"}
+{"timestamp": "2026-07-18T23:33:05.731289Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /greet"}
+{"timestamp": "2026-07-18T23:33:05.739510Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /reportbot (active=False)"}
+{"timestamp": "2026-07-18T23:33:05.774331Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /reportbot"}
+{"timestamp": "2026-07-18T23:33:05.794562Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /alpha (active=True)"}
+{"timestamp": "2026-07-18T23:33:05.812637Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /beta (active=False)"}
+{"timestamp": "2026-07-18T23:33:05.838683Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /gamma (active=False)"}
+{"timestamp": "2026-07-18T23:33:05.859629Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /alpha"}
+{"timestamp": "2026-07-18T23:33:05.889874Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill /beta active=True"}
+{"timestamp": "2026-07-18T23:33:06.065459Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill /beta active=False"}
+{"timestamp": "2026-07-18T23:33:06.088543Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /beta"}
+{"timestamp": "2026-07-18T23:33:06.104209Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /gamma"}
+{"timestamp": "2026-07-18T23:33:06.257032Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] _handle_incoming_message | platform=telegram | user_id=tg1 | conversation_id=chat1 | content_len=16 | content_preview='/provider openai'"}
+{"timestamp": "2026-07-18T23:33:06.257032Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] handle_message returned | command=None | reply_len=3"}
+{"timestamp": "2026-07-18T23:33:22.013858Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:33:22.139196Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:33:22.151335Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:33:22.205887Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:33:22.205887Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:33:22.205887Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:33:22.211548Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:33:22.211548Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:33:22.211548Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:33:22.996860Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:33:49.448900Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:33:49.448900Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:34:28.040985Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:34:28.043002Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:34:28.066789Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:34:28.110173Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:34:28.110173Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:34:28.110173Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:34:28.110173Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:34:28.122875Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:34:28.122875Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:34:28.126903Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:34:28.130191Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:34:28.130191Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:34:28.407269Z", "level": "WARNING", "name": "errors.backend.api", "message": "LLM compaction unavailable (AI router not initialised. Complete the Wizard first.); using extractive fallback"}
+{"timestamp": "2026-07-18T23:34:33.857259Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:34:33.923712Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:34:33.929047Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:34:33.986777Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:34:33.986777Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:34:33.986777Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:34:33.992868Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:34:33.992868Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:34:33.992868Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:34:33.999809Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:34:33.999809Z", "level": "INFO", "name": "errors.backend.startup", "message": "Starting Primus backend\u2026"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.startup", "message": "Loading configuration\u2026"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.startup", "message": "Configuration loaded | version=2"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising database\u2026"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising memory system\u2026"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:34:34.095878Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising tool system\u2026"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising job system\u2026"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialised"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising AI router\u2026"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising messaging\u2026"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising desktop agent\u2026"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.api", "message": "Desktop system initialised"}
+{"timestamp": "2026-07-18T23:34:34.110588Z", "level": "INFO", "name": "errors.backend.startup", "message": "Primus backend startup complete."}
+{"timestamp": "2026-07-18T23:34:35.571882Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from c:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:34:35.602175Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:34:35.618118Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:34:35.663767Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:34:35.663767Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:34:35.663767Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:34:35.663767Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:34:35.663767Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:34:35.663767Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:34:35.663767Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at c:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:34:35.684035Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:34:35.684035Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:34:35.684035Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-18T23:34:35.684035Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-18T23:34:35.684035Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialised"}
+{"timestamp": "2026-07-18T23:34:35.822995Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Submitted job: f46a4975-4c07-4734-8ab3-818f4d2d524a (daily_briefing)"}
+{"timestamp": "2026-07-18T23:34:35.828800Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Job manager started"}
+{"timestamp": "2026-07-18T23:34:35.828800Z", "level": "INFO", "name": "errors.backend.context_engine", "message": "Scheduler started"}
+{"timestamp": "2026-07-18T23:34:35.848745Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Running daily briefing job"}
+{"timestamp": "2026-07-18T23:34:35.850757Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Job completed: f46a4975-4c07-4734-8ab3-818f4d2d524a"}
+{"timestamp": "2026-07-18T23:34:35.850757Z", "level": "INFO", "name": "errors.backend.context_engine", "message": "Sending notification to test_user via system: Job completed: daily_briefing"}
+{"timestamp": "2026-07-18T23:35:07.031388Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:35:07.076958Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:35:07.096632Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:35:07.110181Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:35:07.110181Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:35:07.112336Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:35:07.112336Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:35:07.113517Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:35:07.113517Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:35:07.209295Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-18T23:35:07.209295Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Failure recorded for component test.component: Test failure 1"}
+{"timestamp": "2026-07-18T23:35:07.209295Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Circuit breaker opened for test.component"}
+{"timestamp": "2026-07-18T23:35:07.209295Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Failure recorded for component test.component: Test failure 2"}
+{"timestamp": "2026-07-18T23:35:23.857381Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:35:23.884494Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:35:23.889710Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:35:23.950480Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:35:23.955087Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:35:23.955087Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:35:23.955087Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:35:23.955087Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:35:23.955087Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:35:23.955087Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:35:23.968786Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:35:23.968786Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:35:24.928208Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:35:24.995955Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:35:25.035871Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:35:25.099664Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:35:25.101646Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:35:25.101646Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:35:25.101646Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:35:25.101646Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:35:25.101646Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:35:25.107756Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['web_search']"}
+{"timestamp": "2026-07-18T23:35:25.107756Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:35:25.116423Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:35:25.117809Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:35:25.117809Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-18T23:35:25.117809Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-18T23:35:25.117809Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:35:25.117809Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:35:25.120942Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:35:25.789559Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:35:25.789559Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:35:25.789559Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:35:25.789559Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:35:25.789559Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:35:25.789559Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:35:25.789559Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:35:27.038020Z", "level": "INFO", "name": "errors.backend.desktop", "message": "Detected capabilities: DesktopCapabilities(os='Windows', python_version='3.11.6', has_terminal=True, has_filesystem=True, has_git=True, has_ollama=False, has_docker=False, online=True)"}
+{"timestamp": "2026-07-18T23:35:27.040544Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-18T23:35:27.088439Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-18T23:35:27.104263Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-18T23:35:27.233139Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: ['terminal', 'filesystem', 'python', 'git']"}
+{"timestamp": "2026-07-18T23:35:28.080364Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:35:28.128803Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:35:28.140188Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:35:28.194328Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:35:28.194328Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:35:28.196341Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:35:28.196341Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:35:28.196341Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:35:28.198354Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:35:28.209227Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:35:28.215152Z", "level": "INFO", "name": "errors.backend.startup", "message": "Starting Primus backend\u2026"}
+{"timestamp": "2026-07-18T23:35:28.297107Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-18T23:35:28.297107Z", "level": "INFO", "name": "errors.backend.startup", "message": "Loading configuration\u2026"}
+{"timestamp": "2026-07-18T23:35:28.297107Z", "level": "INFO", "name": "errors.backend.startup", "message": "Configuration loaded | version=2"}
+{"timestamp": "2026-07-18T23:35:28.297107Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising database\u2026"}
+{"timestamp": "2026-07-18T23:35:28.297107Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:35:28.303104Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:35:28.303104Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising memory system\u2026"}
+{"timestamp": "2026-07-18T23:35:28.303104Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:35:28.309772Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising tool system\u2026"}
+{"timestamp": "2026-07-18T23:35:28.309772Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-18T23:35:28.309772Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-18T23:35:28.309772Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising job system\u2026"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialised"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising AI router\u2026"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising messaging\u2026"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising desktop agent\u2026"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.api", "message": "Desktop system initialised"}
+{"timestamp": "2026-07-18T23:35:28.311542Z", "level": "INFO", "name": "errors.backend.startup", "message": "Primus backend startup complete."}
+{"timestamp": "2026-07-18T23:36:26.309858Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:36:26.366401Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:36:26.378707Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:36:26.424006Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref=None not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router initialised | provider=openai model=None | auto_enabled=False | configured_providers=[]"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] Evaluating platform=telegram | has_secret_ref=True"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 WAITING_FOR_CONFIG | secret_ref='messaging.telegram.bot_token' not yet stored"}
+{"timestamp": "2026-07-18T23:36:26.451678Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:36:26.451678Z", "level": "INFO", "name": "errors.backend.startup", "message": "Starting Primus backend\u2026"}
+{"timestamp": "2026-07-18T23:36:26.533186Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-18T23:36:26.533186Z", "level": "INFO", "name": "errors.backend.startup", "message": "Loading configuration\u2026"}
+{"timestamp": "2026-07-18T23:36:26.533186Z", "level": "INFO", "name": "errors.backend.startup", "message": "Configuration loaded | version=2"}
+{"timestamp": "2026-07-18T23:36:26.533186Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising database\u2026"}
+{"timestamp": "2026-07-18T23:36:26.533186Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:36:26.533186Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:36:26.546987Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising memory system\u2026"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising tool system\u2026"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising job system\u2026"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialised"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising AI router\u2026"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising messaging\u2026"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising desktop agent\u2026"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.api", "message": "Desktop system initialised"}
+{"timestamp": "2026-07-18T23:36:26.547499Z", "level": "INFO", "name": "errors.backend.startup", "message": "Primus backend startup complete."}
+{"timestamp": "2026-07-18T23:37:45.152683Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:37:45.208530Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:37:45.223349Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:37:45.276498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:37:45.276498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:37:45.276498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:37:45.276498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:37:45.276498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:37:45.276498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:37:45.281162Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openai.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:37:45.295506Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router initialised | provider=ollama model=llama3.2 | auto_enabled=False | configured_providers=['ollama']"}
+{"timestamp": "2026-07-18T23:37:45.301373Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:37:45.301373Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:37:45.303386Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:37:45.303386Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] Evaluating platform=telegram | has_secret_ref=True"}
+{"timestamp": "2026-07-18T23:37:45.303386Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 WAITING_FOR_CONFIG | secret_ref='messaging.telegram.bot_token' not yet stored"}
+{"timestamp": "2026-07-18T23:37:45.311952Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:37:45.311952Z", "level": "INFO", "name": "errors.backend.startup", "message": "Starting Primus backend\u2026"}
+{"timestamp": "2026-07-18T23:37:45.392432Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-18T23:37:45.392432Z", "level": "INFO", "name": "errors.backend.startup", "message": "Loading configuration\u2026"}
+{"timestamp": "2026-07-18T23:37:45.392432Z", "level": "INFO", "name": "errors.backend.startup", "message": "Configuration loaded | version=2"}
+{"timestamp": "2026-07-18T23:37:45.392432Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising database\u2026"}
+{"timestamp": "2026-07-18T23:37:45.392432Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:37:45.404379Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:37:45.404379Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising memory system\u2026"}
+{"timestamp": "2026-07-18T23:37:45.404379Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:37:45.404379Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising tool system\u2026"}
+{"timestamp": "2026-07-18T23:37:45.406390Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-18T23:37:45.406390Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-18T23:37:45.406390Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising job system\u2026"}
+{"timestamp": "2026-07-18T23:37:45.406390Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialised"}
+{"timestamp": "2026-07-18T23:37:45.408430Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising AI router\u2026"}
+{"timestamp": "2026-07-18T23:37:45.408430Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:37:45.408430Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising messaging\u2026"}
+{"timestamp": "2026-07-18T23:37:45.408430Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:37:45.408430Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:37:45.410442Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising desktop agent\u2026"}
+{"timestamp": "2026-07-18T23:37:45.410442Z", "level": "INFO", "name": "errors.backend.api", "message": "Desktop system initialised"}
+{"timestamp": "2026-07-18T23:37:45.410442Z", "level": "INFO", "name": "errors.backend.startup", "message": "Primus backend startup complete."}
+{"timestamp": "2026-07-18T23:46:34.284389Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:46:34.616249Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:46:34.639529Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:46:34.648388Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:46:34.648388Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:46:34.648388Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:46:34.648388Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:46:34.648388Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:46:34.648388Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:46:35.528149Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:46:35.768757Z", "level": "INFO", "name": "errors.backend.git-learning", "message": "[GIT_LEARN] Completed scan of Primus | languages=['Python', 'HTML', 'JavaScript'] | frameworks=['FastAPI', 'Pydantic', 'Uvicorn']"}
+{"timestamp": "2026-07-18T23:46:35.773931Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:46:35.777984Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:46:36.654676Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:46:36.679418Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:46:36.693088Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:46:36.746491Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:46:36.748498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:46:36.748498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:46:36.748498Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:46:36.750508Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:46:36.750508Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:46:36.754081Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:46:36.764216Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:46:36.764216Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:46:36.766228Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:46:36.768241Z", "level": "INFO", "name": "errors.backend.api", "message": "Active provider switched \u2192 openai (model=gpt-4o)"}
+{"timestamp": "2026-07-18T23:46:36.768241Z", "level": "INFO", "name": "errors.backend.api", "message": "Active provider switched \u2192 openrouter (model=anthropic/claude-sonnet-4-5)"}
+{"timestamp": "2026-07-18T23:46:36.953635Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /greet (active=False)"}
+{"timestamp": "2026-07-18T23:46:37.138905Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /greet"}
+{"timestamp": "2026-07-18T23:46:37.154586Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /reportbot (active=False)"}
+{"timestamp": "2026-07-18T23:46:37.170582Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /reportbot"}
+{"timestamp": "2026-07-18T23:46:37.193146Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /alpha (active=True)"}
+{"timestamp": "2026-07-18T23:46:37.202739Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /beta (active=False)"}
+{"timestamp": "2026-07-18T23:46:37.236089Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /gamma (active=False)"}
+{"timestamp": "2026-07-18T23:46:37.254978Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /alpha"}
+{"timestamp": "2026-07-18T23:46:37.272588Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill /beta active=True"}
+{"timestamp": "2026-07-18T23:46:37.445274Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill /beta active=False"}
+{"timestamp": "2026-07-18T23:46:37.458917Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /beta"}
+{"timestamp": "2026-07-18T23:46:37.488250Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /gamma"}
+{"timestamp": "2026-07-18T23:46:37.634135Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] _handle_incoming_message | platform=telegram | user_id=tg1 | conversation_id=chat1 | content_len=16 | content_preview='/provider openai'"}
+{"timestamp": "2026-07-18T23:46:37.634135Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] handle_message returned | command=None | reply_len=3"}
+{"timestamp": "2026-07-18T23:46:39.206223Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:46:39.270022Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:46:39.279577Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:46:39.321148Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:46:39.321148Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:46:39.321148Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:46:39.321148Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:46:39.321148Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:46:39.321148Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:46:39.335247Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openai.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router initialised | provider=ollama model=llama3.2 | auto_enabled=False | configured_providers=['ollama']"}
+{"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] Evaluating platform=telegram | has_secret_ref=True"}
+{"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 WAITING_FOR_CONFIG | secret_ref='messaging.telegram.bot_token' not yet stored"}
+{"timestamp": "2026-07-18T23:46:39.349063Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:46:39.349063Z", "level": "INFO", "name": "errors.backend.startup", "message": "Starting Primus backend\u2026"}
+{"timestamp": "2026-07-18T23:46:39.423375Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-18T23:46:39.423375Z", "level": "INFO", "name": "errors.backend.startup", "message": "Loading configuration\u2026"}
+{"timestamp": "2026-07-18T23:46:39.423375Z", "level": "INFO", "name": "errors.backend.startup", "message": "Configuration loaded | version=2"}
+{"timestamp": "2026-07-18T23:46:39.423375Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising database\u2026"}
+{"timestamp": "2026-07-18T23:46:39.423375Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising memory system\u2026"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising tool system\u2026"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising job system\u2026"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialised"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising AI router\u2026"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising messaging\u2026"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-18T23:46:39.434155Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising desktop agent\u2026"}
+{"timestamp": "2026-07-18T23:46:39.441857Z", "level": "INFO", "name": "errors.backend.api", "message": "Desktop system initialised"}
+{"timestamp": "2026-07-18T23:46:39.441857Z", "level": "INFO", "name": "errors.backend.startup", "message": "Primus backend startup complete."}
+{"timestamp": "2026-07-18T23:46:40.193898Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:46:40.207632Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:46:40.207632Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:46:40.263215Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:46:40.270761Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:46:40.272802Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:46:40.272802Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:46:40.272802Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:46:40.272802Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:46:40.278902Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:46:40.286412Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:46:40.286412Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-18T23:46:40.679487Z", "level": "WARNING", "name": "errors.backend.api", "message": "LLM compaction unavailable (AI router not initialised. Complete the Wizard first.); using extractive fallback"}
+{"timestamp": "2026-07-18T23:46:45.788797Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:46:45.788797Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}

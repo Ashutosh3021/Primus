@@ -43,8 +43,18 @@ The server starts at http://localhost:8000.
 | `http://localhost:8000/api/dashboard` | Aggregated metrics (uptime, jobs, AI, Telegram, errors, memory) |
 | `http://localhost:8000/api/git-learning/scan` | Scan repo and save to Project memory |
 | `http://localhost:8000/api/automation/workflows` | List built-in automation workflows |
+| `http://localhost:8000/api/providers` | Configured providers + state |
+| `http://localhost:8000/api/models` | Available models for the active provider |
+| `http://localhost:8000/api/personas` | Persona presets + active persona |
+| `http://localhost:8000/api/skills` | List skills |
+| `http://localhost:8000/api/context` | Constructed context for a conversation |
+| `http://localhost:8000/api/recovery` | Circuit-breaker / failure state |
+| `http://localhost:8000/api/trigger/status` | Trigger/keepalive status |
 | `http://localhost:8000/api/docs` | Interactive API docs (Swagger) |
 | `http://localhost:8000/api/redoc` | API docs (ReDoc) |
+
+Full endpoint reference: [Docs/API.md](./API.md). Slash-command reference:
+[Docs/COMMANDS.md](./COMMANDS.md).
 
 ### Opening the frontend pages
 

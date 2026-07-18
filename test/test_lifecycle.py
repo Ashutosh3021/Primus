@@ -75,17 +75,25 @@ def test_router_waiting_when_secret_missing():
                                            fromlist=["SecretNotFoundError"]
                                            ).SecretNotFoundError("not found")):
 
-        from backend.config import ProviderConfig, MessagingConfig, MemoryConfig, ToolsConfig, DesktopConfig, Config
+        from backend.config import (ProviderConfig, MessagingConfig, MemoryConfig,
+                                    ToolsConfig, DesktopConfig, ContextConfig,
+                                    PersonaConfig, Config)
         cfg = Config(
             version=1,
             provider=ProviderConfig(name="openai",
                                     secret_ref="provider.openai.api_key",
                                     model="gpt-4o"),
+            providers={"openai": {"enabled": True,
+                                  "secret_ref": "provider.openai.api_key",
+                                  "default_model": "gpt-4o"}},
+            current_provider="openai",
             messaging=MessagingConfig(telegram={"enabled": False},
                                       discord={"enabled": False}),
             memory=MemoryConfig(enabled=True, backend="sqlite"),
             tools=ToolsConfig(web_search=False, browser=False, terminal=False),
             desktop=DesktopConfig(enabled=False, allowed_paths=["."]),
+            context=ContextConfig(),
+            persona=PersonaConfig(),
         )
         api_mod._router = None
         api_mod.initialize_router(cfg)
@@ -108,17 +116,25 @@ def test_router_running_when_secret_present():
     with mock.patch.object(api_mod, "_registry", test_reg), \
          mock.patch("backend.api.get_secret", return_value="sk-test-key"):
 
-        from backend.config import ProviderConfig, MessagingConfig, MemoryConfig, ToolsConfig, DesktopConfig, Config
+        from backend.config import (ProviderConfig, MessagingConfig, MemoryConfig,
+                                    ToolsConfig, DesktopConfig, ContextConfig,
+                                    PersonaConfig, Config)
         cfg = Config(
             version=1,
             provider=ProviderConfig(name="ollama",
                                     secret_ref="provider.ollama.api_key",
                                     model="llama3.2"),
+            providers={"ollama": {"enabled": True,
+                                  "secret_ref": "provider.ollama.api_key",
+                                  "default_model": "llama3.2"}},
+            current_provider="ollama",
             messaging=MessagingConfig(telegram={"enabled": False},
                                       discord={"enabled": False}),
             memory=MemoryConfig(enabled=True, backend="sqlite"),
             tools=ToolsConfig(web_search=False, browser=False, terminal=False),
             desktop=DesktopConfig(enabled=False, allowed_paths=["."]),
+            context=ContextConfig(),
+            persona=PersonaConfig(),
         )
         api_mod._router = None
         api_mod.initialize_router(cfg)
@@ -138,17 +154,25 @@ def test_messaging_disabled():
 
     test_reg = _fresh_registry()
     with mock.patch.object(api_mod, "_registry", test_reg):
-        from backend.config import ProviderConfig, MessagingConfig, MemoryConfig, ToolsConfig, DesktopConfig, Config
+        from backend.config import (ProviderConfig, MessagingConfig, MemoryConfig,
+                                    ToolsConfig, DesktopConfig, ContextConfig,
+                                    PersonaConfig, Config)
         cfg = Config(
             version=1,
             provider=ProviderConfig(name="ollama",
                                     secret_ref="provider.ollama.api_key",
                                     model="llama3.2"),
+            providers={"ollama": {"enabled": True,
+                                  "secret_ref": "provider.ollama.api_key",
+                                  "default_model": "llama3.2"}},
+            current_provider="ollama",
             messaging=MessagingConfig(telegram={"enabled": False},
                                       discord={"enabled": False}),
             memory=MemoryConfig(enabled=True, backend="sqlite"),
             tools=ToolsConfig(web_search=False, browser=False, terminal=False),
             desktop=DesktopConfig(enabled=False, allowed_paths=["."]),
+            context=ContextConfig(),
+            persona=PersonaConfig(),
         )
         api_mod.initialize_messaging(cfg)
 
@@ -171,12 +195,18 @@ def test_messaging_waiting_when_secret_missing():
                                            fromlist=["SecretNotFoundError"]
                                            ).SecretNotFoundError("not found")):
 
-        from backend.config import ProviderConfig, MessagingConfig, MemoryConfig, ToolsConfig, DesktopConfig, Config
+        from backend.config import (ProviderConfig, MessagingConfig, MemoryConfig,
+                                    ToolsConfig, DesktopConfig, ContextConfig,
+                                    PersonaConfig, Config)
         cfg = Config(
             version=1,
             provider=ProviderConfig(name="ollama",
                                     secret_ref="provider.ollama.api_key",
                                     model="llama3.2"),
+            providers={"ollama": {"enabled": True,
+                                  "secret_ref": "provider.ollama.api_key",
+                                  "default_model": "llama3.2"}},
+            current_provider="ollama",
             messaging=MessagingConfig(
                 telegram={"enabled": True, "secret_ref": "messaging.telegram.bot_token"},
                 discord={"enabled": False}
@@ -184,6 +214,8 @@ def test_messaging_waiting_when_secret_missing():
             memory=MemoryConfig(enabled=True, backend="sqlite"),
             tools=ToolsConfig(web_search=False, browser=False, terminal=False),
             desktop=DesktopConfig(enabled=False, allowed_paths=["."]),
+            context=ContextConfig(),
+            persona=PersonaConfig(),
         )
         api_mod._messaging_platforms = {}
         api_mod.initialize_messaging(cfg)

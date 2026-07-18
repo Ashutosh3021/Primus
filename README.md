@@ -1,4 +1,4 @@
-# Primus v1 — An Open-Source Operating System for AI
+# Primus v1.3.0 — An Open-Source Operating System for AI
 
 > Not another chatbot. An operating system for AI — provider-agnostic, memory-driven, and everywhere you are.
 
@@ -52,7 +52,7 @@ Environment variables: [Docs/ENV_VARS.md](./Docs/ENV_VARS.md)
 
 ---
 
-## Features — v1
+## Features — v1.3.0
 
 ### Multi-Provider AI Routing
 Route every request through a single interface regardless of which provider is configured. Swap providers by changing one line in `config.json` — zero code changes.
@@ -245,6 +245,71 @@ The Automation Engine chains desktop tools into multi-step workflows without blo
 
 ---
 
+### Multi-Provider Manager & Auto Router
+
+Every provider lives behind one **`ProviderManager`** that owns the persistent, per-provider configuration (enabled flag, `secret_ref`, default model). Switching providers or models is a single runtime command (`/provider`, `/model`, `/auto`) — identical whether issued from REST, Telegram, or the Dashboard, because every interface routes through the same `handle_message` dispatcher.
+
+- **Manual mode** — a single active provider/model you choose.
+- **Auto mode** — the **`AutoRouter`** scores all configured providers by cost, capability, and recent health, then picks the best one per request. Toggle with `/auto`.
+- Provider switching is persisted atomically to `config.json` and reflected everywhere instantly.
+
+| Provider | Type |
+|---|---|
+| OpenRouter | Cloud — unified access to hundreds of models |
+| OpenAI | Cloud — GPT series |
+| Anthropic | Cloud — Claude series |
+| Google Gemini | Cloud — Gemini series |
+| Groq | Cloud — fast inference |
+| Moonshot / Kimi | Cloud — Kimi series |
+| Z.AI / GLM | Cloud — GLM series |
+| Ollama | Local — runs entirely on your machine, no API key |
+
+---
+
+### Global Persona
+
+One active persona for **all** interfaces (REST, Telegram, Dashboard). Each persona is a structured 5-field definition:
+
+```
+System Prompt · Prompt Rules · Behavior · Response Style · Constraints
+```
+
+- 9 built-in presets (default, analyst, critic, tutor, coach, pirate, assistant, researcher, custom).
+- `/persona <preset>` switches; `/persona <any free text>` sets a **custom** persona.
+- The persona text is injected into every prompt the Context Engine assembles.
+- A **Custom Persona Editor** and a **Current Persona** display live in the Chat page.
+
+---
+
+### Skills
+
+Reusable, named instruction sets the assistant can invoke on demand.
+
+- `/skill-maker name :: instructions` creates a skill in one line, or run it with no args for a guided (name → prompt → confirm) wizard.
+- Invoke with `/<skill-name> <input>`; the skill's instructions are injected into the prompt automatically.
+- `/list-skills`, `/export-skill <name>`, `/import-skill <json>`, `/<name> delete` for full lifecycle management.
+- Active skills auto-load into the Prompt Builder. A **Skill Manager UI** provides create / delete / import / export / search.
+
+---
+
+### Prompt Builder & Context Engine
+
+The **`ContextEngine`** (live module: `backend/context/`) selects only what is relevant per request — recent conversation, long-term memory, Project memory from Git Learning, and the active persona + skills — and assembles it through the **`PromptBuilder`**. `/compact` summarizes a long session to reclaim context budget.
+
+---
+
+### Unified Runtime
+
+There is exactly **one** runtime entry point: `backend.api.handle_message(text, user_id, conversation_id)`. REST (`/api/chat`), Telegram (long-polling bot), and the Dashboards all delegate to it — no interface owns AI logic, so behavior is guaranteed identical everywhere.
+
+---
+
+### Chat Page
+
+A conversational UI (`pages/chat/index.html`) that talks to `/api/chat`, shows the current provider/model, surfaces the **Custom Persona Editor** and **Skill Manager**, and reflects subsystem status live.
+
+---
+
 A browser-based setup flow that walks through every configuration option one question at a time.
 
 - Selects provider, model, and messaging platforms
@@ -267,6 +332,27 @@ A live dashboard that auto-refreshes every 15 seconds from the backend.
 - Cost-by-provider donut chart
 - Calls-by-tool bar chart
 - Graceful fallback to empty state when backend is unreachable
+
+---
+
+### Command Reference
+
+All commands work identically from REST (`/api/chat`), Telegram, and the Chat page. Full syntax and examples: [Docs/COMMANDS.md](./Docs/COMMANDS.md).
+
+| Command | Purpose |
+|---|---|
+| `/provider <name>` | Switch active provider |
+| `/model <name>` | Switch active model |
+| `/auto` | Toggle Auto Router (cost/capability/health-based selection) |
+| `/persona` | Show current persona |
+| `/persona <preset|text>` | Switch preset or set a custom persona |
+| `/compact` | Summarize the session to reclaim context |
+| `/skill-maker [name :: prompt]` | Create a skill (guided wizard if no args) |
+| `/list-skills` | List all skills |
+| `/<skill> <input>` | Run a skill |
+| `/<skill> delete` | Delete a skill |
+| `/export-skill <name>` | Export a skill as JSON |
+| `/import-skill <json>` | Import a skill from JSON |
 
 ---
 
@@ -365,17 +451,20 @@ Primus/
 │   ├── metrics.py              # Counters, gauges, timers
 │   ├── recovery.py             # Circuit breaker and retry logic
 │   │
-│   ├── api/                    # Internal service layer
+│   ├── api/                    # Internal service layer + unified handle_message dispatcher
 │   ├── db/                     # SQLite schema + async stores
-│   ├── memory/                 # Context engine + prompt builder
-│   ├── providers/              # One file per AI provider
-│   ├── messaging/              # One file per platform
+│   ├── context/                # LIVE Context engine + prompt builder (relevance selection)
+│   ├── memory/                 # LEGACY context engine (superseded by backend/context/)
+│   ├── providers/              # One file per AI provider + ProviderManager
+│   ├── router/                 # AIRouter + AutoRouter (capability/health/cost selection)
+│   ├── messaging/              # One file per platform (Telegram implemented)
 │   ├── tools/                  # Tool interface + web search
 │   ├── desktop/                # Desktop connector + local tools + automation engine
-│   ├── jobs/                   # Job manager + worker loop
-│   ├── context_engine/         # Scheduler + notification engine
+│   ├── jobs/                   # Job manager + worker loop + notifications
+│   ├── context_engine/         # Scheduler (cron) + notification engine
 │   ├── git-learning/           # Repo → structured summary extraction + job registration
-│   └── router/                 # AI request router
+│   ├── persona.py               # Global persona presets + active persona state
+│   └── skills.py               # SkillManager (create/invoke/import/export/delete)
 │
 ├── pages/
 │   ├── Wizard/wizard.html      # Setup wizard
@@ -386,13 +475,18 @@ Primus/
 │   ├── ARCHITECTURE.md         # System design
 │   ├── ROADMAP.md              # Build sequence and milestones
 │   ├── DEPLOY.md               # Deployment instructions
-│   └── ENV_VARS.md             # Environment variable reference
+│   ├── ENV_VARS.md             # Environment variable reference
+│   ├── API.md                  # HTTP API reference
+│   └── COMMANDS.md             # Slash-command reference
 │
 └── test/
-    ├── verify_project.py       # 171-check project verification script
+    ├── verify_project.py       # 217-check project verification script
+    ├── test_commands.py        # Unified-runtime + command behavior checks
+    ├── test_context_engine.py
+    ├── test_lifecycle.py       # Module lifecycle + startup state machine
     ├── test_ai_core.py
-    ├── test_phase3.py
-    └── test_phase7.py
+    ├── test_phase3..7.py       # Per-phase regression tests
+    └── test_phase4..7.py
 ```
 
 ---
@@ -409,7 +503,7 @@ python test/verify_project.py
 ✓ All checks passed. Project is production-ready.
 ```
 
-Checks cover: folder structure, all Python imports, config validity, provider registry, messaging platforms, tool registry, memory and database, jobs and scheduler, desktop agent, health/metrics/diagnostics/recovery, every HTTP endpoint (including `/api/dashboard`, `/api/git-learning/*`, `/api/automation/*`), database initialisation, deployment files, code quality (no TODOs, no hardcoded keys), git-learning module, automation engine, and frontend-backend integration.
+Checks cover: folder structure, all Python imports, config validity, provider registry, messaging platforms, tool registry, memory and database, jobs and scheduler, desktop agent, health/metrics/diagnostics/recovery, every HTTP endpoint (including `/api/dashboard`, `/api/git-learning/*`, `/api/automation/*`, `/api/personas`, `/api/skills`), database initialisation, deployment files, code quality (no TODOs, no hardcoded keys), git-learning module, automation engine, context engine, persona and skills, and frontend-backend integration.
 
 ---
 
@@ -426,11 +520,15 @@ Checks cover: folder structure, all Python imports, config validity, provider re
 | 6 — Wizard | ✅ Complete | Full setup flow, backend integration |
 | 7 — Production Quality | ✅ Complete | Health, metrics, diagnostics, recovery, HTTP API |
 | 8 — Git Learning | ✅ Complete | Repo → structured memory extraction, job registration |
-| 9 — Context Engine v2 | 🔜 Planned | Vector-based relevance selection |
-| 10 — Desktop Agent Auth | 🔜 Planned | Device pairing and token-scoped tool access |
-| 10a — Automation Engine | ✅ Complete | Multi-step desktop tool workflows with template variables |
-| 11 — More Platforms | 🔜 Planned | Discord, WhatsApp, Email, Google Chat, SMS |
-| 12 — Browser Automation | 🔜 Planned | Headless browsing as a first-class tool |
+| 9 — Context Engine | ✅ Complete | Relevance selection + Prompt Builder + `/compact` |
+| 10 — Desktop Agent + Automation | ✅ Complete | Local tools, multi-step workflows, template vars |
+| 11 — Multi-Provider Manager | ✅ Complete (v1.3.0) | `ProviderManager`, `/provider` `/model` `/auto` |
+| 12 — Global Persona | ✅ Complete (v1.3.0) | 5-field presets, custom persona, `/persona` |
+| 13 — Skills System | ✅ Complete (v1.3.0) | `SkillManager`, `/skill-maker`, Skill Manager UI |
+| 14 — Unified Runtime + Chat | ✅ Complete (v1.3.0) | `handle_message` dispatcher, Chat page |
+| 11a — More Platforms | 🔜 Planned | Discord, WhatsApp, Email, Google Chat, SMS |
+| 12a — Browser Automation | 🔜 Planned | Headless browsing as a first-class tool |
+| 13a — Desktop Agent Auth | 🔜 Planned | Device pairing and token-scoped tool access |
 
 ---
 

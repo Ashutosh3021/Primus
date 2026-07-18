@@ -145,20 +145,69 @@ Desktop tools (terminal, filesystem, git, python, ollama, docker) are fully impl
 
 ---
 
+## v1.3.0 Feature Phases (shipped)
+
+These phases were delivered as a cohesive release on top of the Phase 0–10 base.
+
+- **Multi-Provider Manager** — `ProviderManager` owns per-provider persistent
+  config; `/provider` `/model` `/auto` switch at runtime, persisted atomically
+  to `config.json`. Depends on: Phase 1.
+- **Global Persona** — 5-field presets + custom persona in `backend/persona.py`;
+  injected into the Prompt Builder. Depends on: Phase 9.
+- **Skills System** — `SkillManager` (create/invoke/import/export/delete) in
+  `backend/skills.py`; conversational `/skill-maker` wizard; Skill Manager UI.
+  Depends on: Phase 9.
+- **Context Engine v2** — live `backend/context/` engine + `PromptBuilder`,
+  `/compact`. Depends on: Phase 3, Phase 8.
+- **Unified Runtime + Chat Page** — single `handle_message` dispatcher;
+  `pages/chat/index.html`. Depends on: all of the above.
+
+**Milestone:** switching provider/persona/skill from REST, Telegram, or the
+Dashboard produces identical behavior (verified by `test/test_commands.py`);
+the Dashboard exposes real status for every subsystem.
+
+---
+
+## Future Work
+
+### v1.4.0 (next)
+- Remove `backend/memory/` legacy duplicate (dead code).
+- Add call timeouts to Git/Docker desktop tools (currently can block the event loop).
+- Job-retry backoff (currently immediate re-queue).
+- Cap `MetricsRegistry` unbounded history growth.
+- Persist user-defined automation workflows.
+- Discord messaging alpha (config/lifecycle already present; bot not wired).
+- `/api/persona` editing of custom presets.
+
+### v2.0.0
+- Vector-based Context Engine retrieval (§9).
+- Desktop Agent device pairing + token-scoped tool access (§10a).
+- Browser Automation tool (§12a).
+- Additional messaging platforms (WhatsApp, Email, Google Chat, SMS).
+- Multi-user tenancy.
+
+> **Known stubs (do not enable expecting function):** Discord/WhatsApp/Email/
+> SMS/Google Chat messaging, and the `browser` tool flag, are declared in config
+> and the lifecycle module list but not yet implemented.
+
+---
+
 ## Sequencing Summary
 
 ```
 0 Scaffolding
-1 AI Routing
+1 AI Routing ───────▶ 11 Multi-Provider Manager (v1.3.0)
 2 Backend Core
 3 Memory ──────────┐
 4 Tools ────────────┼──▶ 5 Messaging (Telegram) ──▶ 6 Wizard
                     │
                     └──▶ 7 Jobs
-8 Git Learning ──▶ 9 Context Engine
-10 Desktop Agent
-11 More Messaging Platforms
-12 Browser Automation
+8 Git Learning ──▶ 9 Context Engine ──▶ 12 Global Persona (v1.3.0)
+                                ├────▶ 13 Skills System (v1.3.0)
+                                └────▶ 14 Unified Runtime + Chat (v1.3.0)
+10 Desktop Agent (Auth ──▶ v2.0.0)
+11a More Messaging Platforms (v1.4.0+)
+12a Browser Automation (v2.0.0)
 13 Promotional Dashboard
 ```
 

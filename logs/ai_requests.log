@@ -18,3 +18,7 @@
 {"timestamp": "2026-07-06T23:06:11.535332Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
 {"timestamp": "2026-07-18T15:14:16.699719Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: openrouter, model: openai/gpt-4o"}
 {"timestamp": "2026-07-18T15:14:16.700324Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: anthropic, model: claude-sonnet-4-5"}
+{"timestamp": "2026-07-18T23:35:23.076667Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
+{"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: openai, model: None"}
+{"timestamp": "2026-07-18T23:37:45.283212Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
+{"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
