@@ -275,8 +275,8 @@ def initialize_messaging(config: Config) -> None:
 def initialize_jobs(config: Config) -> None:
     """Initialise job manager, notification engine, scheduler (no secrets)."""
     global _job_manager, _notification_engine, _scheduler
-    _job_manager = JobManager()
     _notification_engine = NotificationEngine({})
+    _job_manager = JobManager(notification_engine=_notification_engine)
     _scheduler = Scheduler(_job_manager, _notification_engine)
     _registry.set_running("scheduler")
     logger.info("Job system initialised")

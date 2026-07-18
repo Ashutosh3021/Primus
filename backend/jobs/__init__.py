@@ -6,8 +6,9 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Type
 from datetime import datetime
 import asyncio
+import aiosqlite
 
-from backend.db import Job, JobStatus, JobStore
+from backend.db import Job, JobStatus, JobStore, DB_PATH
 from backend.logger import get_errors_logger
 from backend.exceptions import PrimusException
 
@@ -57,14 +58,29 @@ class DailyBriefingJob(BaseJob):
 class JobManager:
     """Manages job execution."""
 
-    def __init__(self):
+    def __init__(self, notification_engine: Optional[Any] = None):
         self.job_store = JobStore()
         self._running = False
         self._worker_task: Optional[asyncio.Task] = None
-        self._notification_callback: Optional[Any] = None
+        self._notification_engine: Optional[Any] = notification_engine
 
     async def start(self):
-        """Start the job manager."""
+        """Start the job manager.
+
+        Recovers any jobs left in RUNNING state by a previous crashed
+        process: they are reset to PENDING so the worker loop picks them
+        up again instead of leaving them orphaned forever.
+        """
+        try:
+            async with aiosqlite.connect(DB_PATH) as conn:
+                await conn.execute(
+                    "UPDATE jobs SET status = ? WHERE status = ?",
+                    (JobStatus.PENDING.value, JobStatus.RUNNING.value),
+                )
+                await conn.commit()
+        except Exception as exc:
+            logger.error(f"Job recovery (RUNNING->PENDING) failed: {exc}", exc_info=True)
+
         self._running = True
         self._worker_task = asyncio.create_task(self._worker_loop())
         logger.info("Job manager started")
@@ -78,7 +94,7 @@ class JobManager:
     async def submit(self, job: Job) -> Job:
         """Submit a job for execution."""
         job = await self.job_store.create(job)
-        logger.info(f"Submitted job: {job.job_id} ({job.name}")
+        logger.info(f"Submitted job: {job.job_id} ({job.name})")
         return job
 
     async def _process_job(self, job: Job):
@@ -95,6 +111,7 @@ class JobManager:
             job.status = JobStatus.COMPLETED
             job.result = str(result.get("content", ""))
             logger.info(f"Job completed: {job.job_id}")
+            await self._notify(job, "completed", f"Job '{job.name}' completed.")
         except Exception as e:
             job.retry_count += 1
             if job.retry_count <= job.max_retries:
@@ -105,9 +122,28 @@ class JobManager:
                 job.status = JobStatus.FAILED
                 job.error = f"Max retries reached: {str(e)}"
                 logger.error(f"Job failed: {job.job_id}")
+                await self._notify(
+                    job, "failed",
+                    f"Job '{job.name}' failed after {job.retry_count} attempts: {e}"
+                )
         finally:
             job.completed_at = datetime.utcnow()
             await self.job_store.update(job)
+
+    async def _notify(self, job: Job, outcome: str, message: str) -> None:
+        """Persist a notification record when a job finishes or exhausts retries."""
+        engine = self._notification_engine
+        if engine is None:
+            return
+        try:
+            await engine.send(
+                user_id=job.user_id or "default",
+                channel="system",
+                title=f"Job {outcome}: {job.name}",
+                content=message,
+            )
+        except Exception as exc:
+            logger.error(f"Failed to record job notification: {exc}", exc_info=True)
 
     async def _worker_loop(self):
         """Main worker loop to process pending jobs."""

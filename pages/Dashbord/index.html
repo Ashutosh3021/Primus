@@ -651,6 +651,10 @@ window.PRIMUS_CONFIG = CONFIG;
     color:var(--bone);
     font-weight:500;
   }
+  #metricsPanel .mp-val.mp-ok{ color:#8fd6a0; }
+  #metricsPanel .mp-val.mp-off{ color:var(--sage); opacity:0.6; }
+  #metricsPanel .mp-val.mp-warn{ color:#e8c46a; }
+  #metricsPanel .mp-val.mp-bad{ color:#e08a8a; }
   #metricsPanel .mp-section{
     font-size:0.62rem;
     letter-spacing:0.16em;
@@ -945,6 +949,13 @@ window.PRIMUS_CONFIG = CONFIG;
 
     <div class="mp-section">Logs</div>
     <div class="mp-row"><span>Error lines</span><span class="mp-val" id="mp-errors">—</span></div>
+
+    <div class="mp-section">Subsystems</div>
+    <div class="mp-row"><span>Provider</span><span class="mp-val" id="mp-provider">—</span></div>
+    <div class="mp-row"><span>Model</span><span class="mp-val" id="mp-model">—</span></div>
+    <div class="mp-row"><span>Scheduler</span><span class="mp-val" id="mp-scheduler">—</span></div>
+    <div class="mp-row"><span>Desktop</span><span class="mp-val" id="mp-desktop">—</span></div>
+    <div id="mp-modules"></div>
   </div>
   <div id="mpLastUpdated">—</div>
 </div>
@@ -1085,6 +1096,65 @@ window.PRIMUS_CONFIG = CONFIG;
 
   fetchDashboardMetrics();
   setInterval(fetchDashboardMetrics, 30000);
+
+  // ---------- Subsystem status (real lifecycle states from /api/status) ----------
+  function statusClass(state) {
+    // Map backend module states to a colour class.
+    if (state === 'running' || state === 'enabled' || state === true) return 'mp-ok';
+    if (state === 'disabled') return 'mp-off';
+    if (state === 'failed' || state === 'error') return 'mp-bad';
+    return 'mp-warn';
+  }
+
+  function fetchSubsystemStatus() {
+    var base = (window.PRIMUS_CONFIG && window.PRIMUS_CONFIG.BACKEND_URL)
+      ? window.PRIMUS_CONFIG.BACKEND_URL
+      : CONFIG.BACKEND_URL;
+
+    fetch(base + '/api/status', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000)
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function(d) {
+      setText('mp-provider', d.provider || 'unknown');
+      setText('mp-model', d.model || 'unknown');
+      setText('mp-scheduler', (d.scheduler_status || 'unknown'));
+      setText('mp-desktop', (d.desktop_status || 'unknown'));
+
+      var wrap = document.getElementById('mp-modules');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      var modules = d.modules || {};
+      Object.keys(modules).forEach(function(name) {
+        var st = modules[name];
+        var row = document.createElement('div');
+        row.className = 'mp-row';
+        var label = document.createElement('span');
+        label.textContent = name;
+        var val = document.createElement('span');
+        val.className = 'mp-val ' + statusClass(st);
+        val.textContent = String(st);
+        row.appendChild(label);
+        row.appendChild(val);
+        wrap.appendChild(row);
+      });
+      if (!Object.keys(modules).length) {
+        var none = document.createElement('div');
+        none.className = 'mp-row';
+        none.innerHTML = '<span>modules</span><span class="mp-val">none reported</span>';
+        wrap.appendChild(none);
+      }
+    })
+    .catch(function() { /* backend unreachable — leave placeholders */ });
+  }
+
+  fetchSubsystemStatus();
+  setInterval(fetchSubsystemStatus, 30000);
 
   // ---------- Nav toggle ----------
   var navToggle = document.getElementById('navToggle');

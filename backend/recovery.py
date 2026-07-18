@@ -62,6 +62,9 @@ class RecoveryManager:
             stack_trace=traceback.format_exc()
         )
         self._state.failures.append(record)
+        # Track the most recent failure time so get_recovery_state() can
+        # report a meaningful last_recovery value.
+        self._state.last_recovery = record.timestamp
 
         # Keep only last 100 failures
         if len(self._state.failures) > 100:

@@ -982,3 +982,44 @@
 {"timestamp": "2026-07-18T23:11:30.914460Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
 {"timestamp": "2026-07-18T23:11:30.914460Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
 {"timestamp": "2026-07-18T23:11:31.200066Z", "level": "WARNING", "name": "errors.backend.api", "message": "LLM compaction unavailable (AI router not initialised. Complete the Wizard first.); using extractive fallback"}
+{"timestamp": "2026-07-18T23:21:28.093091Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:21:28.447512Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:21:28.461320Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:21:28.463332Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:21:28.465345Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:21:28.465345Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:21:28.465345Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:21:28.465345Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:21:28.465345Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:21:29.387599Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:21:29.608050Z", "level": "INFO", "name": "errors.backend.git-learning", "message": "[GIT_LEARN] Completed scan of Primus | languages=['Python', 'HTML', 'JavaScript'] | frameworks=['FastAPI', 'Pydantic', 'Uvicorn']"}
+{"timestamp": "2026-07-18T23:21:29.612671Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:21:29.617223Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:27:21.179805Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:27:21.479125Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:27:21.508314Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:27:21.564960Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:27:21.564960Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:27:21.566973Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:27:21.566973Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:27:21.566973Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:27:21.569014Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:27:27.956363Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-18T23:27:28.304001Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:27:28.321458Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-18T23:27:28.323471Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-18T23:27:28.323471Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-18T23:27:28.325695Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-18T23:27:28.326390Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-18T23:27:28.326390Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-18T23:27:28.328380Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-18T23:27:29.266222Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-18T23:27:29.500176Z", "level": "INFO", "name": "errors.backend.git-learning", "message": "[GIT_LEARN] Completed scan of Primus | languages=['Python', 'HTML', 'JavaScript'] | frameworks=['FastAPI', 'Pydantic', 'Uvicorn']"}
+{"timestamp": "2026-07-18T23:27:29.504578Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-18T23:27:29.510499Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:27:45.050156Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:27:45.050156Z", "level": "ERROR", "name": "errors.backend.recovery", "message": "Failure recorded for component providers: boom"}
+{"timestamp": "2026-07-18T23:28:15.848574Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-18T23:28:15.848574Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\AppData\\Local\\Temp\\primus_audit_test.db"}
+{"timestamp": "2026-07-18T23:28:16.118356Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-18T23:28:16.162225Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Job manager started"}
