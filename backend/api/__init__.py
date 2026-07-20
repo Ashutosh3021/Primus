@@ -493,10 +493,17 @@ def set_auto(enabled: bool) -> dict:
     _auto_enabled = bool(enabled)
     _persist_state()
     logger.info(f"Auto Mode → {_auto_enabled}")
+    model = None
+    if _manager and _current_provider:
+        try:
+            model = _manager.get_default_model(_current_provider)
+        except Exception:
+            pass
     return {
+        "ok": True,
         "auto_enabled": _auto_enabled,
         "provider": _current_provider,
-        "model": _manager.get_default_model(_current_provider) if _manager else None,
+        "model": model,
     }
 
 
@@ -508,9 +515,11 @@ def handle_command(text: str) -> tuple[bool, dict]:
     NOT forward the message to the AI — it was a command.
 
     Supported:
-      /provider <name>   switch active provider (restores its model)
-      /model <model>     change current provider's model (strict validation)
-      /auto              toggle Auto Mode
+      /provider              list providers + current provider
+      /provider <name>       switch active provider (restores its model)
+      /model                 list models + current model for active provider
+      /model <model>         change current provider's model (strict validation)
+      /auto                  toggle Auto Mode
     """
     if _manager is None:
         return (False, {})
@@ -519,40 +528,78 @@ def handle_command(text: str) -> tuple[bool, dict]:
     if t.startswith("/provider"):
         parts = t.split()
         if len(parts) < 2:
+            # No argument — show current provider + available list.
+            info = get_providers_info()
+            lines = [
+                f"Current provider: {info.get('current_provider') or 'none'}",
+                f"Auto mode: {'on' if info.get('auto_enabled') else 'off'}",
+                "",
+                "Available providers:",
+            ]
+            for p in info.get("providers", []):
+                marker = "→" if p["is_current"] else " "
+                status = "configured" if p["configured"] else "not configured"
+                lines.append(f"  {marker} {p['name']} ({status})")
             return (True, {
                 "command": "provider",
-                "ok": False,
-                "error": "Usage: /provider <name>",
-                "available_providers": list(_manager.get_providers().keys()),
-                "configured_providers": _manager.configured_providers(),
+                "ok": True,
+                "current_provider": info.get("current_provider"),
+                "auto_enabled": info.get("auto_enabled"),
+                "providers": info.get("providers", []),
+                "content": "\n".join(lines),
             })
         try:
             info = set_provider(parts[1])
             return (True, {"command": "provider", "ok": True, **info})
         except Exception as exc:
+            available = list(_manager.get_providers().keys())
             return (True, {
                 "command": "provider",
                 "ok": False,
                 "error": str(exc),
-                "available_providers": list(_manager.get_providers().keys()),
+                "available_providers": available,
+                "content": f"Unknown provider: {parts[1]!r}\nAvailable: {', '.join(available)}",
             })
 
     if t.startswith("/model"):
         parts = t.split()
         if len(parts) < 2:
+            # No argument — show current model + available models.
+            cur_provider = _current_provider or "none"
+            cur_model = _manager.get_default_model(_current_provider) if _current_provider else "none"
+            available = _manager.available_models(_current_provider) if _current_provider else []
+            lines = [
+                f"Current provider: {cur_provider}",
+                f"Current model:    {cur_model}",
+                "",
+                "Available models:",
+            ]
+            for m in available:
+                marker = "→" if m == cur_model else " "
+                lines.append(f"  {marker} {m}")
             return (True, {
                 "command": "model",
-                "ok": False,
-                "error": "Usage: /model <model>",
-                "available_models": _manager.available_models(_current_provider),
+                "ok": True,
+                "provider": cur_provider,
+                "current_model": cur_model,
+                "available_models": available,
+                "content": "\n".join(lines),
             })
         res = set_model(parts[1])
         res["command"] = "model"
+        if not res.get("ok"):
+            available = res.get("available_models", [])
+            res["content"] = (
+                f"Unknown model: {parts[1]!r}\n"
+                f"Available models for {res.get('provider', _current_provider)}:\n"
+                + "\n".join(f"  - {m}" for m in available)
+            )
         return (True, res)
 
     if t == "/auto":
         res = set_auto(not _auto_enabled)
         res["command"] = "auto"
+        res["ok"] = True
         return (True, res)
 
     return (False, {})
@@ -839,17 +886,23 @@ def _extractive_summary(transcript: str) -> str:
 
 def _command_content(cmd: dict) -> str:
     """Human-readable reply text for a multi-provider command result."""
+    # If the command handler already built a content string, use it.
+    if cmd.get("content"):
+        return cmd["content"]
     if not cmd.get("ok"):
         return cmd.get("error") or "Command failed."
     c = cmd.get("command")
     if c == "auto":
-        return f"Auto {'enabled' if cmd.get('auto_enabled') else 'disabled'}"
+        state = "enabled" if cmd.get("auto_enabled") else "disabled"
+        provider = cmd.get("provider") or "none"
+        model = cmd.get("model") or "none"
+        return f"Auto routing {state}. Active provider: {provider} / {model}"
     if c == "provider":
-        return f"{c} OK → {cmd.get('provider')}" + (
-            f" :: {cmd.get('model')}" if cmd.get("model") else ""
+        return f"Provider → {cmd.get('provider')}" + (
+            f" (model: {cmd.get('model')})" if cmd.get("model") else ""
         )
     if c == "model":
-        return f"{c} OK → {cmd.get('provider')} :: {cmd.get('model')}"
+        return f"Model → {cmd.get('provider')} :: {cmd.get('model')}"
     return cmd.get("error") or "OK"
 
 
@@ -1340,6 +1393,22 @@ async def handle_message(text: str, user_id: str, conversation_id: str) -> dict:
             skills = await get_skill_manager().list_skills()
             cmd["skills"] = skills
             cmd["count"] = len(skills)
+            if not skills:
+                cmd["content"] = "No skills found. Create one with /skill-maker"
+            else:
+                lines = [f"Skills ({len(skills)}):"]
+                for s in skills:
+                    meta = s.get("metadata") or {}
+                    active_flag = " [active]" if s.get("active") else ""
+                    merged = ", ".join(meta.get("dependencies") or [])
+                    merged_str = f" (merged: {merged})" if merged else ""
+                    created = meta.get("created_date") or ""
+                    created_str = f" | created: {created[:10]}" if created else ""
+                    desc = s.get("description") or ""
+                    lines.append(
+                        f"  /{s['name']}{active_flag} — {desc}{merged_str}{created_str}"
+                    )
+                cmd["content"] = "\n".join(lines)
         return cmd
 
     # 7. Skill invocation (any stored skill via /<name>).

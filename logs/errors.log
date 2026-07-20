@@ -1404,3 +1404,252 @@
 {"timestamp": "2026-07-18T23:46:40.679487Z", "level": "WARNING", "name": "errors.backend.api", "message": "LLM compaction unavailable (AI router not initialised. Complete the Wizard first.); using extractive fallback"}
 {"timestamp": "2026-07-18T23:46:45.788797Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
 {"timestamp": "2026-07-18T23:46:45.788797Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-20T23:39:35.623013Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-20T23:39:35.643588Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-20T23:39:35.971954Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-20T23:39:36.006109Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-20T23:39:36.022924Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-20T23:39:36.139622Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-20T23:39:36.139622Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-20T23:39:36.139622Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-20T23:39:36.139622Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-20T23:39:36.139622Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-20T23:39:36.139622Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-20T23:39:36.171065Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.173118Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:39:36.173118Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.193328Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /persist_test (active=False)"}
+{"timestamp": "2026-07-20T23:39:36.206266Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /persist_test"}
+{"timestamp": "2026-07-20T23:39:36.206266Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.206266Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:39:36.206266Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.206266Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:39:36.206266Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.222997Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:39:36.225016Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.226017Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:39:36.226017Z", "level": "INFO", "name": "errors.backend.api", "message": "Auto Mode \u2192 True"}
+{"timestamp": "2026-07-20T23:39:36.227007Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.244364Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /noise_skill (active=False)"}
+{"timestamp": "2026-07-20T23:39:36.289492Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /noise_skill"}
+{"timestamp": "2026-07-20T23:39:36.289492Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.372020Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.406009Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.489548Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.511268Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /tutor (active=False)"}
+{"timestamp": "2026-07-20T23:39:36.675478Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /tutor"}
+{"timestamp": "2026-07-20T23:39:36.690704Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /tutor (active=False)"}
+{"timestamp": "2026-07-20T23:39:36.709356Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /tutor"}
+{"timestamp": "2026-07-20T23:39:36.723033Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.738750Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /alpha (active=False)"}
+{"timestamp": "2026-07-20T23:39:36.745777Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /beta (active=False)"}
+{"timestamp": "2026-07-20T23:39:36.772863Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /combined (active=True)"}
+{"timestamp": "2026-07-20T23:39:36.789429Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /alpha"}
+{"timestamp": "2026-07-20T23:39:36.806125Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /beta"}
+{"timestamp": "2026-07-20T23:39:36.822951Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /combined"}
+{"timestamp": "2026-07-20T23:39:36.822951Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.838670Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /always_on (active=True)"}
+{"timestamp": "2026-07-20T23:39:36.956290Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /always_on"}
+{"timestamp": "2026-07-20T23:39:36.974328Z", "level": "WARNING", "name": "errors.backend.providers.openai_base", "message": "[OpenAICompatibleProvider] 402 token-limit hit \u2014 retrying with reduced max_tokens=4096"}
+{"timestamp": "2026-07-20T23:39:36.978312Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:39:36.979327Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:39:36.979327Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] _handle_incoming_message | platform=telegram | user_id=tg1 | conversation_id=c2 | content_len=16 | content_preview='/persona default'"}
+{"timestamp": "2026-07-20T23:39:36.979327Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] handle_message returned | command=persona | reply_len=26"}
+{"timestamp": "2026-07-20T23:40:11.336651Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-20T23:40:11.345864Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-20T23:40:11.595948Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-20T23:40:11.627968Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-20T23:40:11.627968Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-20T23:40:11.678314Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-20T23:40:11.678314Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-20T23:40:11.678314Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-20T23:40:11.678314Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-20T23:40:11.689938Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-20T23:40:11.689938Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-20T23:40:11.693723Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.695217Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:11.696317Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.713945Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /persist_test (active=False)"}
+{"timestamp": "2026-07-20T23:40:11.728202Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /persist_test"}
+{"timestamp": "2026-07-20T23:40:11.728202Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.739956Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:11.741990Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.743355Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:11.744448Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.746440Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:11.747428Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.748444Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:11.749429Z", "level": "INFO", "name": "errors.backend.api", "message": "Auto Mode \u2192 True"}
+{"timestamp": "2026-07-20T23:40:11.749429Z", "level": "INFO", "name": "errors.backend.api", "message": "Auto Mode \u2192 False"}
+{"timestamp": "2026-07-20T23:40:11.750432Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.761825Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /noise_skill (active=False)"}
+{"timestamp": "2026-07-20T23:40:11.828212Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /noise_skill"}
+{"timestamp": "2026-07-20T23:40:11.829211Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.906573Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:11.944851Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:12.027152Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:12.047928Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /tutor (active=False)"}
+{"timestamp": "2026-07-20T23:40:12.203365Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /tutor"}
+{"timestamp": "2026-07-20T23:40:12.213443Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /tutor (active=False)"}
+{"timestamp": "2026-07-20T23:40:12.243273Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /tutor"}
+{"timestamp": "2026-07-20T23:40:12.243273Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:12.264026Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /alpha (active=False)"}
+{"timestamp": "2026-07-20T23:40:12.284754Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /beta (active=False)"}
+{"timestamp": "2026-07-20T23:40:12.310265Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /combined (active=True)"}
+{"timestamp": "2026-07-20T23:40:12.327098Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /alpha"}
+{"timestamp": "2026-07-20T23:40:12.348343Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /beta"}
+{"timestamp": "2026-07-20T23:40:12.361129Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /combined"}
+{"timestamp": "2026-07-20T23:40:12.361129Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:12.383312Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /always_on (active=True)"}
+{"timestamp": "2026-07-20T23:40:12.530456Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /always_on"}
+{"timestamp": "2026-07-20T23:40:12.541018Z", "level": "WARNING", "name": "errors.backend.providers.openai_base", "message": "[OpenAICompatibleProvider] 402 token-limit hit \u2014 retrying with reduced max_tokens=4096"}
+{"timestamp": "2026-07-20T23:40:12.543662Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:12.543662Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:12.543662Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] _handle_incoming_message | platform=telegram | user_id=tg1 | conversation_id=c2 | content_len=16 | content_preview='/persona default'"}
+{"timestamp": "2026-07-20T23:40:12.543662Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] handle_message returned | command=persona | reply_len=26"}
+{"timestamp": "2026-07-20T23:40:22.215387Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-20T23:40:22.240291Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-20T23:40:22.248462Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-20T23:40:22.294828Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-20T23:40:22.294828Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-20T23:40:22.294828Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-20T23:40:22.294828Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-20T23:40:22.294828Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-20T23:40:22.294828Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-20T23:40:22.306068Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-20T23:40:22.308052Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-20T23:40:22.308052Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:22.317887Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:41.195970Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-20T23:40:41.227340Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-20T23:40:41.237037Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-20T23:40:41.292120Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-20T23:40:41.293289Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-20T23:40:41.293646Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-20T23:40:41.294651Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-20T23:40:41.295336Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-20T23:40:41.295336Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-20T23:40:41.297434Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-20T23:40:41.299445Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-20T23:40:41.307688Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:41.308702Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:40:41.312482Z", "level": "INFO", "name": "errors.backend.api", "message": "Active provider switched \u2192 openai (model=gpt-4o)"}
+{"timestamp": "2026-07-20T23:40:41.312482Z", "level": "INFO", "name": "errors.backend.api", "message": "Active provider switched \u2192 openrouter (model=anthropic/claude-sonnet-4-5)"}
+{"timestamp": "2026-07-20T23:40:41.468446Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /greet (active=False)"}
+{"timestamp": "2026-07-20T23:40:41.613120Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /greet"}
+{"timestamp": "2026-07-20T23:40:41.646614Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /reportbot (active=False)"}
+{"timestamp": "2026-07-20T23:40:41.662936Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /reportbot"}
+{"timestamp": "2026-07-20T23:40:41.682191Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /alpha (active=True)"}
+{"timestamp": "2026-07-20T23:40:41.697339Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /beta (active=False)"}
+{"timestamp": "2026-07-20T23:40:41.727381Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /gamma (active=False)"}
+{"timestamp": "2026-07-20T23:40:41.745836Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /alpha"}
+{"timestamp": "2026-07-20T23:40:41.767029Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill /beta active=True"}
+{"timestamp": "2026-07-20T23:40:41.912916Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill /beta active=False"}
+{"timestamp": "2026-07-20T23:40:41.930486Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /beta"}
+{"timestamp": "2026-07-20T23:40:41.945884Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /gamma"}
+{"timestamp": "2026-07-20T23:40:42.061381Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] _handle_incoming_message | platform=telegram | user_id=tg1 | conversation_id=chat1 | content_len=16 | content_preview='/provider openai'"}
+{"timestamp": "2026-07-20T23:40:42.061381Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] handle_message returned | command=None | reply_len=3"}
+{"timestamp": "2026-07-20T23:40:50.554552Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-20T23:40:50.563313Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-20T23:40:50.578968Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-20T23:40:50.629412Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-20T23:40:50.629412Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-20T23:40:50.629412Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-20T23:40:50.629412Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-20T23:40:50.629412Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-20T23:40:50.629412Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-20T23:40:50.629412Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-20T23:40:50.644655Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-20T23:40:50.645185Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:40:50.879675Z", "level": "WARNING", "name": "errors.backend.api", "message": "LLM compaction unavailable (AI router not initialised. Complete the Wizard first.); using extractive fallback"}
+{"timestamp": "2026-07-20T23:41:04.479031Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-20T23:41:04.532814Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-20T23:41:04.542784Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-20T23:41:04.587538Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-20T23:41:04.591131Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-20T23:41:04.592015Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openai.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router initialised | provider=ollama model=llama3.2 | auto_enabled=False | configured_providers=['ollama']"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] Evaluating platform=telegram | has_secret_ref=True"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 WAITING_FOR_CONFIG | secret_ref='messaging.telegram.bot_token' not yet stored"}
+{"timestamp": "2026-07-20T23:41:04.610446Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: git_learning"}
+{"timestamp": "2026-07-20T23:41:04.610446Z", "level": "INFO", "name": "errors.backend.startup", "message": "Starting Primus backend\u2026"}
+{"timestamp": "2026-07-20T23:41:04.693072Z", "level": "INFO", "name": "errors.backend.diagnostics", "message": "Startup diagnostics initialized"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Loading configuration\u2026"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Configuration loaded | version=2"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising database\u2026"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising memory system\u2026"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising tool system\u2026"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Tool manager initialized with tools: []"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.api", "message": "Tool system initialised"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising job system\u2026"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.api", "message": "Job system initialised"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising AI router\u2026"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:04.693450Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising messaging\u2026"}
+{"timestamp": "2026-07-20T23:41:04.708663Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] initialize_messaging | platforms_in_registry=['telegram']"}
+{"timestamp": "2026-07-20T23:41:04.709430Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_INIT] telegram \u2192 DISABLED (not enabled in config)"}
+{"timestamp": "2026-07-20T23:41:04.709430Z", "level": "INFO", "name": "errors.backend.startup", "message": "Initialising desktop agent\u2026"}
+{"timestamp": "2026-07-20T23:41:04.709430Z", "level": "INFO", "name": "errors.backend.api", "message": "Desktop system initialised"}
+{"timestamp": "2026-07-20T23:41:04.709430Z", "level": "INFO", "name": "errors.backend.startup", "message": "Primus backend startup complete."}
+{"timestamp": "2026-07-20T23:41:38.041923Z", "level": "INFO", "name": "errors.backend.db", "message": "Initializing database at C:\\Users\\ashut\\Downloads\\Primus\\primus.db"}
+{"timestamp": "2026-07-20T23:41:38.049625Z", "level": "INFO", "name": "errors.backend.db", "message": "Database initialized successfully"}
+{"timestamp": "2026-07-20T23:41:38.277703Z", "level": "INFO", "name": "errors.backend.secrets", "message": "Loaded .env from C:\\Users\\ashut\\Downloads\\Primus\\.env"}
+{"timestamp": "2026-07-20T23:41:38.303228Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: web_search"}
+{"timestamp": "2026-07-20T23:41:38.313980Z", "level": "INFO", "name": "errors.backend.jobs", "message": "Registered job: daily_briefing"}
+{"timestamp": "2026-07-20T23:41:38.364002Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: terminal"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: filesystem"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: python"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: git"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: ollama"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.tools.base", "message": "Registered tool: docker"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:38.364380Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.393301Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /persist_test (active=False)"}
+{"timestamp": "2026-07-20T23:41:38.414073Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /persist_test"}
+{"timestamp": "2026-07-20T23:41:38.414073Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.414073Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:38.414073Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.414073Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:38.414073Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.426076Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:38.428102Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.429088Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:38.429088Z", "level": "INFO", "name": "errors.backend.api", "message": "Auto Mode \u2192 True"}
+{"timestamp": "2026-07-20T23:41:38.430089Z", "level": "INFO", "name": "errors.backend.api", "message": "Auto Mode \u2192 False"}
+{"timestamp": "2026-07-20T23:41:38.431110Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.449359Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /noise_skill (active=False)"}
+{"timestamp": "2026-07-20T23:41:38.504198Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /noise_skill"}
+{"timestamp": "2026-07-20T23:41:38.504198Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.581671Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.615395Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.698645Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.721144Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /tutor (active=False)"}
+{"timestamp": "2026-07-20T23:41:38.885724Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /tutor"}
+{"timestamp": "2026-07-20T23:41:38.898739Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /tutor (active=False)"}
+{"timestamp": "2026-07-20T23:41:38.921019Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /tutor"}
+{"timestamp": "2026-07-20T23:41:38.932249Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:38.951377Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /alpha (active=False)"}
+{"timestamp": "2026-07-20T23:41:38.966752Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /beta (active=False)"}
+{"timestamp": "2026-07-20T23:41:38.983436Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /combined (active=True)"}
+{"timestamp": "2026-07-20T23:41:39.012090Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /alpha"}
+{"timestamp": "2026-07-20T23:41:39.029684Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /beta"}
+{"timestamp": "2026-07-20T23:41:39.047301Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /combined"}
+{"timestamp": "2026-07-20T23:41:39.047301Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:39.066014Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill created: /always_on (active=True)"}
+{"timestamp": "2026-07-20T23:41:39.204419Z", "level": "INFO", "name": "errors.backend.skills", "message": "Skill deleted: /always_on"}
+{"timestamp": "2026-07-20T23:41:39.213852Z", "level": "WARNING", "name": "errors.backend.providers.openai_base", "message": "[OpenAICompatibleProvider] 402 token-limit hit \u2014 retrying with reduced max_tokens=4096"}
+{"timestamp": "2026-07-20T23:41:39.213852Z", "level": "INFO", "name": "errors.backend.api", "message": "Context Engine initialised | max_tokens=128000 prune_threshold=0.85"}
+{"timestamp": "2026-07-20T23:41:39.213852Z", "level": "INFO", "name": "errors.backend.api", "message": "AI router waiting for configuration | secret_ref='provider.openrouter.api_key' not yet stored \u2014 run the Wizard to activate"}
+{"timestamp": "2026-07-20T23:41:39.213852Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] _handle_incoming_message | platform=telegram | user_id=tg1 | conversation_id=c2 | content_len=16 | content_preview='/persona default'"}
+{"timestamp": "2026-07-20T23:41:39.213852Z", "level": "INFO", "name": "errors.backend.api", "message": "[TG_AI] handle_message returned | command=persona | reply_len=26"}

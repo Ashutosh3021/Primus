@@ -22,3 +22,10 @@
 {"timestamp": "2026-07-18T23:36:26.435873Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: openai, model: None"}
 {"timestamp": "2026-07-18T23:37:45.283212Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
 {"timestamp": "2026-07-18T23:46:39.336440Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
+{"timestamp": "2026-07-20T23:39:36.972946Z", "level": "INFO", "name": "ai_requests.backend.providers.openai_base", "message": "Requesting chat completion from OpenAICompatibleProvider"}
+{"timestamp": "2026-07-20T23:39:36.976323Z", "level": "INFO", "name": "ai_requests.backend.providers.openai_base", "message": "Received chat completion"}
+{"timestamp": "2026-07-20T23:40:12.538782Z", "level": "INFO", "name": "ai_requests.backend.providers.openai_base", "message": "Requesting chat completion from OpenAICompatibleProvider"}
+{"timestamp": "2026-07-20T23:40:12.543154Z", "level": "INFO", "name": "ai_requests.backend.providers.openai_base", "message": "Received chat completion"}
+{"timestamp": "2026-07-20T23:41:04.592728Z", "level": "INFO", "name": "ai_requests.backend.router.ai_router", "message": "Initialized AIRouter with provider: ollama, model: llama3.2"}
+{"timestamp": "2026-07-20T23:41:39.213852Z", "level": "INFO", "name": "ai_requests.backend.providers.openai_base", "message": "Requesting chat completion from OpenAICompatibleProvider"}
+{"timestamp": "2026-07-20T23:41:39.213852Z", "level": "INFO", "name": "ai_requests.backend.providers.openai_base", "message": "Received chat completion"}

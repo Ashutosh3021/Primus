@@ -3,6 +3,7 @@ Base provider for OpenAI-compatible APIs (OpenAI, OpenRouter, Groq, etc.).
 """
 
 import httpx
+import json as _json
 from typing import AsyncGenerator, List, Optional
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
@@ -14,6 +15,20 @@ from backend.exceptions import ProviderError
 
 logger = get_ai_requests_logger(__name__)
 error_logger = get_errors_logger(__name__)
+
+# Token budget fractions used for the 402 retry:
+#   First attempt: use the provider's safe limit.
+#   Retry attempt: halve it once more.
+_OPENROUTER_SAFE_MAX_TOKENS = 4096  # conservative default when no explicit limit set
+_TOKEN_RETRY_FRACTION = 0.5          # reduce to 50 % on retry
+
+
+def _is_token_limit_error(status_code: int, body: str) -> bool:
+    """Return True when the API response indicates a token-budget 402 error."""
+    if status_code != 402:
+        return False
+    body_lower = body.lower()
+    return "token" in body_lower or "credit" in body_lower or "quota" in body_lower
 
 
 class OpenAICompatibleProvider(BaseProvider):
@@ -34,7 +49,7 @@ class OpenAICompatibleProvider(BaseProvider):
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
                 },
-                timeout=30.0
+                timeout=60.0
             )
         return self._client
 
@@ -68,27 +83,41 @@ class OpenAICompatibleProvider(BaseProvider):
         **kwargs
     ) -> ChatCompletion:
         client = await self._get_client()
-        
+
         payload = {
             "model": self.model,
             "messages": self._build_messages_payload(messages),
             "temperature": temperature,
             "stream": False
         }
-        
+
         if max_tokens:
             payload["max_tokens"] = max_tokens
-        
+
         payload.update(kwargs)
-        
+
         try:
             logger.info(f"Requesting chat completion from {self.__class__.__name__}", extra={"model": self.model})
             response = await client.post("/chat/completions", json=payload)
+
+            # ── 402 token-limit retry (Phase 6) ──────────────────────────────
+            # OpenRouter returns 402 when the requested token count exceeds the
+            # account's remaining credits.  We detect it, lower max_tokens to a
+            # safe conservative value, and retry ONCE before surfacing the error.
+            if _is_token_limit_error(response.status_code, response.text):
+                error_logger.warning(
+                    f"[{self.__class__.__name__}] 402 token-limit hit — "
+                    f"retrying with reduced max_tokens={_OPENROUTER_SAFE_MAX_TOKENS}"
+                )
+                retry_payload = dict(payload)
+                retry_payload["max_tokens"] = _OPENROUTER_SAFE_MAX_TOKENS
+                response = await client.post("/chat/completions", json=retry_payload)
+
             response.raise_for_status()
-            
+
             data = response.json()
             choice = data["choices"][0]
-            
+
             completion = ChatCompletion(
                 content=choice["message"]["content"],
                 model=data["model"],
@@ -96,10 +125,10 @@ class OpenAICompatibleProvider(BaseProvider):
                 usage=data.get("usage"),
                 finish_reason=choice.get("finish_reason")
             )
-            
+
             logger.info(f"Received chat completion", extra={"model": data["model"]})
             return completion
-            
+
         except httpx.HTTPStatusError as e:
             error_logger.error(f"HTTP error in {self.__class__.__name__}", exc_info=True)
             raise ProviderError(f"HTTP error: {e.response.status_code} - {e.response.text}") from e
@@ -146,9 +175,8 @@ class OpenAICompatibleProvider(BaseProvider):
                         if data_str == "[DONE]":
                             break
                             
-                        import json
                         try:
-                            data = json.loads(data_str)
+                            data = _json.loads(data_str)
                             if data.get("choices"):
                                 choice = data["choices"][0]
                                 delta = choice.get("delta", {})
@@ -158,7 +186,7 @@ class OpenAICompatibleProvider(BaseProvider):
                                     model=data.get("model"),
                                     finish_reason=choice.get("finish_reason")
                                 )
-                        except json.JSONDecodeError:
+                        except _json.JSONDecodeError:
                             continue
                             
         except httpx.HTTPStatusError as e:

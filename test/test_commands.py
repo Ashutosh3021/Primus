@@ -65,10 +65,12 @@ async def main():
     try:
         # ── 1. Commands route without crashing / persisting ──────────────────
         r = await handle_message("/provider", "u", "c")
-        assert r["command"] == "provider" and r["ok"] is False, r
+        assert r["command"] == "provider" and r["ok"] is True, r
+        assert "Current provider" in r.get("content", ""), r
         r = await handle_message("/model", "u", "c")
-        assert r["command"] == "model" and r["ok"] is False, r
-        print("OK  /provider and /model route (usage errors, no persistence)")
+        assert r["command"] == "model" and r["ok"] is True, r
+        assert "Current model" in r.get("content", "") or "Available models" in r.get("content", ""), r
+        print("OK  /provider and /model route (status display, no persistence)")
 
         # ── 2. Provider switch identical across REST + Telegram ──────────────
         api._persist_state = lambda: None  # don't mutate config.json in test

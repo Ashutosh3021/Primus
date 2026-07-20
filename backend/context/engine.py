@@ -28,7 +28,7 @@ from backend.context.layers import (
 )
 from backend.context.store import LayeredMemoryStore, DEFAULT_USER
 from backend.context.budget import ContextBudget, estimate_tokens
-from backend.context.prompt_builder import PromptBuilder
+from backend.context.prompt_builder import PromptBuilder, _EXCLUDED_LAYERS
 from backend.logger import get_errors_logger
 
 logger = get_errors_logger(__name__)
@@ -206,11 +206,15 @@ class ContextEngine:
 
         layer_sections: List[tuple] = []
         for layer in LAYER_PRIORITY:
-            if layer in (ContextLayer.PERSONA, ContextLayer.ACTIVE_SESSION):
+            if layer in _EXCLUDED_LAYERS or layer == ContextLayer.ACTIVE_SESSION:
                 continue
             entries = await self.store.get_all(layer, self.user_id)
             if entries:
-                body = "\n".join(f"- {e['key']}: {e['value']}" for e in entries)
+                # Filter irrelevant/noisy entries and cap per-layer count.
+                relevant = self.builder.filter_entries(entries, query)
+                if not relevant:
+                    continue
+                body = "\n".join(f"- {e['key']}: {e['value']}" for e in relevant)
                 title = f"--- {LAYER_META[layer]['title'].upper()} ---"
                 layer_sections.append((title, body))
 
